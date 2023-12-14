@@ -296,7 +296,7 @@ def update(x, y, z, scatter, ax2):
 
 
 def main():
-    configFileName = "/home/sergio/Desktop/thesis/IWR1443-Python-API/radarconfig/iwr1443sdk2_4m_12hz.cfg"
+    configFileName = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
     IWR1443 = ReadIWR14xx(
         configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"
     )
