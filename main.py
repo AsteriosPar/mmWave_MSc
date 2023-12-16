@@ -8,45 +8,72 @@ from Visualizer import Visualizer
 
 
 def main():
+    # Specify the mmWave config file
     configFileName = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
+
+    # Specify the data logging path
+    data_path = "./data/training_data.csv"
+    if os.path.exists(data_path):
+        os.remove(data_path)
+
     IWR1443 = ReadIWR14xx(
         configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"
     )
-    sleeptime = 0.001 * IWR1443.framePeriodicity
+    SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
+    FRAMES_SKIP = 10
+    BUFFER_SIZE = 10
 
-    file_path = "./data/training_data.csv"
-    if os.path.exists(file_path):
-        os.remove(file_path)
-
+    # Specify the parameters for the data visualization
     figure = Visualizer(enable_2d=True)
 
+    # Control loop
     dataOk, frameNumber, detObj = IWR1443.read()
+    frame_count = 0
+    data_buffer = pd.DataFrame()
+
     while True:
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
-                # update(detObj["x"], detObj["y"], detObj["z"], scatter, ax2)
+                # Update visualization graphs
                 figure.update(detObj["x"], detObj["y"], detObj["z"])
 
-                # Sample DataFrame
-                data = {
-                    "Frame": frameNumber,
-                    "X": detObj["x"],
-                    "Y": detObj["y"],
-                    "Label": "A",
-                }
+                if frame_count % FRAMES_SKIP == 0:
+                    # Prepare data for logging
+                    data = {
+                        "Frame": frameNumber,
+                        "X": detObj["x"],
+                        "Y": detObj["y"],
+                        "Label": "A",
+                    }
 
-                df = pd.DataFrame(data)
-                df.to_csv(
-                    file_path,
-                    mode="a",
-                    index=False,
-                    header=not os.path.exists(file_path),
-                )
+                    # Store data in the data path
+                    df = pd.DataFrame(data)
+                    # data_buffer = data_buffer.append(df, ignore_index=True)
+                    data_buffer = pd.concat([data_buffer, df], ignore_index=True)
 
-            time.sleep(sleeptime)  # Sampling frequency of 20 Hz
+                    if len(data_buffer) >= BUFFER_SIZE:
+                        data_buffer.to_csv(
+                            data_path,
+                            mode="a",
+                            index=False,
+                            header=False,
+                        )
+
+                        # Clear the buffer
+                        data_buffer.drop(data_buffer.index, inplace=True)
+
+                frame_count += 1
+
+            time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
         except KeyboardInterrupt:
             plt.close()
+            data_buffer.to_csv(
+                data_path,
+                mode="a",
+                index=False,
+                header=False,
+            )
             del IWR1443
             break
 

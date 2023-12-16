@@ -7,7 +7,7 @@ class Visualizer:
     def __init__(
         self,
         enable_2d=False,
-        axis_3d: [float, float, float] = [10.0, 10.0, 10.0],
+        axis_3d: [float, float, float] = [2.0, 2.0, 2.0],
         axis_2d: [float, float] = [1.5, 1.5],
         rect_size: float = 0.5,
     ):
@@ -18,6 +18,9 @@ class Visualizer:
         fig = plt.figure()
         self.ax = fig.add_subplot(121, projection="3d")
         self.scatter = self.ax.scatter([], [], [])
+        self.ax.set_xlim(0, axis_3d[0])
+        self.ax.set_ylim(0, axis_3d[1])
+        self.ax.set_zlim(0, axis_3d[2])
 
         self.rect_2d = enable_2d
 
