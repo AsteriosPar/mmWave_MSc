@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Rectangle
+from Visualizer import Visualizer
 
 """ This module is taken from https://github.com/FmmW-Group/IWR1443-Python-API/blob/main/README.md"""
 
@@ -275,24 +276,22 @@ class ReadIWR14xx(object):
         self.Dataport.close()
 
 
-def update(x, y, z, scatter, ax2):
-    # Update the data in the 3D scatter plot
+# def update(x, y, z, scatter, ax2):
+#     # Update the data in the 3D scatter plot
+#     scatter._offsets3d = (x, y, z)
 
-    scatter._offsets3d = (x, y, z)
+#     ax2.clear()
+#     center = (-np.mean(x), np.mean(z))
+#     # Plot the filled square with updated center coordinates and alpha
+#     ax2.set_xlim(-1.5, 1.5)
+#     ax2.set_ylim(-1.5, 1.5)
+#     square = Rectangle(
+#         (center[0] - 0.25, center[1] - 0.25), 0.5, 0.5, alpha=0.5, color="b"
+#     )
+#     ax2.add_patch(square)
 
-    center = (-np.mean(x), np.mean(z))
-
-    ax2.clear()
-    # Plot the filled square with updated center coordinates and alpha
-    ax2.set_xlim(-1.5, 1.5)
-    ax2.set_ylim(-1.5, 1.5)
-    square = Rectangle(
-        (center[0] - 0.25, center[1] - 0.25), 0.5, 0.5, alpha=0.5, color="b"
-    )
-    ax2.add_patch(square)
-
-    plt.draw()
-    plt.pause(0.1)  # Pause for a short time to allow for updating
+#     plt.draw()
+#     plt.pause(0.1)  # Pause for a short time to allow for updating
 
 
 def main():
@@ -302,35 +301,49 @@ def main():
     )
     sleeptime = 0.001 * IWR1443.framePeriodicity
 
-    # Create a 3D scatter plot
-    fig = plt.figure()
-    ax = fig.add_subplot(121, projection="3d")
-    scatter = ax.scatter([], [], [])
+    figure = Visualizer(enable_2d=True)
 
-    # Create a 2D plot for the square
-    ax2 = fig.add_subplot(122)
+    # # Create a 3D scatter plot
+    # fig = plt.figure()
+    # ax = fig.add_subplot(121, projection="3d")
+    # scatter = ax.scatter([], [], [])
 
-    plt.show(block=False)  # Set block=False to allow continuing execution
+    # # Create a 2D plot for the square
+    # ax2 = fig.add_subplot(122)
+
+    # plt.show(block=False)  # Set block=False to allow continuing execution
 
     dataOk, frameNumber, detObj = IWR1443.read()
     while True:
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
-                update(detObj["x"], detObj["y"], detObj["z"], scatter, ax2)
+                # update(detObj["x"], detObj["y"], detObj["z"], scatter, ax2)
+                figure.update(detObj["x"], detObj["y"], detObj["z"])
 
-                data = np.array(
-                    [
-                        detObj["x"],
-                        detObj["y"],
-                        detObj["z"],
-                        detObj["doppler"],
-                        detObj["peakVal"],
-                    ]
-                ).transpose(1, 0)
-                print(frameNumber, np.shape(data))
-            else:
-                print(0)
+                # Sample DataFrame
+                data = {
+                    "Frame": frameNumber,
+                    "X": detObj["x"],
+                    "Y": detObj["y"],
+                    "Label": "A",
+                }
+
+                df = pd.DataFrame(data)
+                df.to_json("./data/training_data.json", orient="records")
+
+            #     data = np.array(
+            #         [
+            #             detObj["x"],
+            #             detObj["y"],
+            #             detObj["z"],
+            #             detObj["doppler"],
+            #             detObj["peakVal"],
+            #         ]
+            #     ).transpose(1, 0)
+            #     print(frameNumber, np.shape(data))
+            # else:
+            #     print(0)
 
             time.sleep(sleeptime)  # Sampling frequency of 20 Hz
         except KeyboardInterrupt:
