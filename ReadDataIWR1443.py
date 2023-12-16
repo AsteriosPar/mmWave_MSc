@@ -1,11 +1,6 @@
 import time
 import numpy as np
 import serial
-import pandas as pd
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import Rectangle
-from Visualizer import Visualizer
 
 """ This module is taken from https://github.com/FmmW-Group/IWR1443-Python-API/blob/main/README.md"""
 
@@ -276,81 +271,49 @@ class ReadIWR14xx(object):
         self.Dataport.close()
 
 
-# def update(x, y, z, scatter, ax2):
-#     # Update the data in the 3D scatter plot
-#     scatter._offsets3d = (x, y, z)
+# def log():
+# skip_frames
 
-#     ax2.clear()
-#     center = (-np.mean(x), np.mean(z))
-#     # Plot the filled square with updated center coordinates and alpha
-#     ax2.set_xlim(-1.5, 1.5)
-#     ax2.set_ylim(-1.5, 1.5)
-#     square = Rectangle(
-#         (center[0] - 0.25, center[1] - 0.25), 0.5, 0.5, alpha=0.5, color="b"
+
+# def main():
+#     configFileName = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
+#     IWR1443 = ReadIWR14xx(
+#         configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"
 #     )
-#     ax2.add_patch(square)
+#     sleeptime = 0.001 * IWR1443.framePeriodicity
 
-#     plt.draw()
-#     plt.pause(0.1)  # Pause for a short time to allow for updating
+#     file_path = "./data/training_data.csv"
+#     if os.path.exists(file_path):
+#         os.remove(file_path)
 
+#     figure = Visualizer(enable_2d=True)
 
-def main():
-    configFileName = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
-    IWR1443 = ReadIWR14xx(
-        configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"
-    )
-    sleeptime = 0.001 * IWR1443.framePeriodicity
+#     dataOk, frameNumber, detObj = IWR1443.read()
+#     while True:
+#         try:
+#             dataOk, frameNumber, detObj = IWR1443.read()
+#             if dataOk:
+#                 # update(detObj["x"], detObj["y"], detObj["z"], scatter, ax2)
+#                 figure.update(detObj["x"], detObj["y"], detObj["z"])
 
-    figure = Visualizer(enable_2d=True)
+#                 # Sample DataFrame
+#                 data = {
+#                     "Frame": frameNumber,
+#                     "X": detObj["x"],
+#                     "Y": detObj["y"],
+#                     "Label": "A",
+#                 }
 
-    # # Create a 3D scatter plot
-    # fig = plt.figure()
-    # ax = fig.add_subplot(121, projection="3d")
-    # scatter = ax.scatter([], [], [])
+#                 df = pd.DataFrame(data)
+#                 df.to_csv(
+#                     file_path,
+#                     mode="a",
+#                     index=False,
+#                     header=not os.path.exists(file_path),
+#                 )
 
-    # # Create a 2D plot for the square
-    # ax2 = fig.add_subplot(122)
-
-    # plt.show(block=False)  # Set block=False to allow continuing execution
-
-    dataOk, frameNumber, detObj = IWR1443.read()
-    while True:
-        try:
-            dataOk, frameNumber, detObj = IWR1443.read()
-            if dataOk:
-                # update(detObj["x"], detObj["y"], detObj["z"], scatter, ax2)
-                figure.update(detObj["x"], detObj["y"], detObj["z"])
-
-                # Sample DataFrame
-                data = {
-                    "Frame": frameNumber,
-                    "X": detObj["x"],
-                    "Y": detObj["y"],
-                    "Label": "A",
-                }
-
-                df = pd.DataFrame(data)
-                df.to_json("./data/training_data.json", orient="records")
-
-            #     data = np.array(
-            #         [
-            #             detObj["x"],
-            #             detObj["y"],
-            #             detObj["z"],
-            #             detObj["doppler"],
-            #             detObj["peakVal"],
-            #         ]
-            #     ).transpose(1, 0)
-            #     print(frameNumber, np.shape(data))
-            # else:
-            #     print(0)
-
-            time.sleep(sleeptime)  # Sampling frequency of 20 Hz
-        except KeyboardInterrupt:
-            plt.close()
-            del IWR1443
-            break
-
-
-if __name__ == "__main__":
-    main()
+#             time.sleep(sleeptime)  # Sampling frequency of 20 Hz
+#         except KeyboardInterrupt:
+#             plt.close()
+#             del IWR1443
+#             break
