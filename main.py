@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
+from Localization import DBscan
 
 
 def main():
@@ -20,11 +21,11 @@ def main():
         configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"
     )
     SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
-    FRAMES_SKIP = 10
-    BUFFER_SIZE = 10
+    FRAMES_SKIP = 5
+    BUFFER_SIZE = 100
 
     # Specify the parameters for the data visualization
-    figure = Visualizer(enable_2d=True)
+    figure = Visualizer(enable_2d=True, enable_cluster=True)
 
     # Control loop
     dataOk, frameNumber, detObj = IWR1443.read()
@@ -35,8 +36,10 @@ def main():
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
+                data3d = np.column_stack((detObj["x"], detObj["y"], detObj["z"]))
+                cluster_labels = DBscan(data3d)
                 # Update visualization graphs
-                figure.update(detObj["x"], detObj["y"], detObj["z"])
+                figure.update(detObj["x"], detObj["y"], detObj["z"], cluster_labels)
 
                 if frame_count % FRAMES_SKIP == 0:
                     # Prepare data for logging
