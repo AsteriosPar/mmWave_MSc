@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib import gridspec
 
 
 class Visualizer:
@@ -17,23 +18,29 @@ class Visualizer:
         self.rect_size = rect_size
 
         fig = plt.figure()
-        self.ax = fig.add_subplot(121, projection="3d")
+
+        # Use gridspec to create a 1x3 grid for subplots
+        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 1], height_ratios=[1, 1])
+
+        self.ax = fig.add_subplot(gs[0, 0], projection="3d")
         self.scatter = self.ax.scatter([], [], [])
         self.ax.set_xlim(0, axis_3d[0])
         self.ax.set_ylim(0, axis_3d[1])
         self.ax.set_zlim(0, axis_3d[2])
+        self.ax.set_title("Scatter plot of raw Point Cloud")
 
         self.rect_2d = enable_2d
         self.cluster = enable_cluster
 
         if self.rect_2d:
             # Create a 2D plot for the square
-            self.ax2 = fig.add_subplot(122)
+            self.ax2 = fig.add_subplot(gs[0, 1])
             self.ax2.set_xlim(-self.axis_2d[0], self.axis_2d[0])
             self.ax2.set_ylim(-self.axis_2d[1], self.axis_2d[1])
+            self.ax2.set_title("Vertical 2D square projection")
 
         if self.cluster:
-            self.ax3 = fig.add_subplot(211, projection="3d")
+            self.ax3 = fig.add_subplot(gs[1, 0], projection="3d")
             self.scatter3 = self.ax3.scatter([], [], [])
             self.ax3.set_xlim(0, axis_3d[0])
             self.ax3.set_ylim(0, axis_3d[1])
@@ -41,15 +48,12 @@ class Visualizer:
             self.ax3.set_xlabel("X")
             self.ax3.set_ylabel("Y")
             self.ax3.set_zlabel("Z")
-            self.ax3.set_title("DBSCAN Clustering Results in 3D")
+            self.ax3.set_title("Scatter plot of procesed and clustered PointCloud")
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
     def update(self, coords, labels=None):
         x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
-
-        # Update the data in the 3D scatter plot
-        self.scatter._offsets3d = (x, y, z)
 
         # Update the square in the 2D plot
         if self.rect_2d:
@@ -73,3 +77,8 @@ class Visualizer:
 
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
+
+    def update_raw(self, x, y, z):
+        # Update the data in the 3D scatter plot
+        self.scatter._offsets3d = (x, y, z)
+        plt.draw()

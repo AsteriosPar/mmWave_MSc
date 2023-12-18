@@ -21,7 +21,7 @@ def main():
     SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
     # Specify the parameters for the data visualization
-    figure = Visualizer(enable_2d=True, enable_cluster=True)
+    figure = Visualizer(const.ENABLE_2D_VIEW, const.ENABLE_3D_VIEW)
 
     # Control loop
     dataOk, frameNumber, detObj = IWR1443.read()
@@ -32,6 +32,9 @@ def main():
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
+                # update the raw data scatter plot
+                figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
+
                 # Apply scene constraints and static clutter removal
                 effective_data = apply_constraints(detObj)
 
@@ -42,7 +45,10 @@ def main():
                     # Update visualization graphs
                     figure.update(effective_data[1], cluster_labels)
 
-                    if frame_count % const.FB_FRAMES_SKIP == 0:
+                    if (
+                        frame_count % const.FB_FRAMES_SKIP == 0
+                        and const.ENABLE_DATA_LOGGING
+                    ):
                         # Prepare data for logging
                         data = {
                             "Frame": frameNumber,
@@ -72,12 +78,13 @@ def main():
             time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
         except KeyboardInterrupt:
             plt.close()
-            data_buffer.to_csv(
-                data_path,
-                mode="a",
-                index=False,
-                header=False,
-            )
+            if const.ENABLE_DATA_LOGGING:
+                data_buffer.to_csv(
+                    data_path,
+                    mode="a",
+                    index=False,
+                    header=False,
+                )
             del IWR1443
             break
 
