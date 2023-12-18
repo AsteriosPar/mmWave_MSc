@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
-from Localization import DBscan
+from Localization import apply_DBscan, apply_constraints
 
 
 def main():
@@ -36,10 +36,14 @@ def main():
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
-                data3d = np.column_stack((detObj["x"], detObj["y"], detObj["z"]))
-                cluster_labels = DBscan(data3d)
+                # Apply scene constraints and static clutter removal
+                effective_data = apply_constraints(detObj)
+
+                # DBScan Clustering
+                cluster_labels = apply_DBscan(effective_data[1])
+
                 # Update visualization graphs
-                figure.update(detObj["x"], detObj["y"], detObj["z"], cluster_labels)
+                figure.update(effective_data[1], cluster_labels)
 
                 if frame_count % FRAMES_SKIP == 0:
                     # Prepare data for logging

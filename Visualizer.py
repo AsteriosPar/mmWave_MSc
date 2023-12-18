@@ -45,7 +45,9 @@ class Visualizer:
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
-    def update(self, x, y, z, labels=None):
+    def update(self, coords, labels=None):
+        x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
+
         # Update the data in the 3D scatter plot
         self.scatter._offsets3d = (x, y, z)
 
