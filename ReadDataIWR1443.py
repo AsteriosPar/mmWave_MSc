@@ -6,7 +6,7 @@ import serial
 
 
 class ReadIWR14xx(object):
-    def __init__(self, configFileName, CLIport="/dev/ttyACM0", Dataport="/dev/ttyACM1"):
+    def __init__(self, configFileName, CLIport, Dataport):
         self.configFileName = configFileName
         # Windows COM10 COM9; Raspberry Pi /dev/ttyACM0 /dev/ttyACM1
         self.CLIport = serial.Serial(CLIport, 115200)

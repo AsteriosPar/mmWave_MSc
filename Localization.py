@@ -1,16 +1,22 @@
 from sklearn.cluster import DBSCAN
-from constants import a
+import constants as const
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def _altered_EuclideanDist(p1, p2, a):
-    return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2 + a * ((p1[2] - p2[2]) ** 2)
+def _altered_EuclideanDist(p1, p2):
+    return (
+        (p1[0] - p2[0]) ** 2
+        + (p1[1] - p2[1]) ** 2
+        + const.DB_Z_WEIGHT * ((p1[2] - p2[2]) ** 2)
+    )
 
 
 def apply_DBscan(data):
     dbscan = DBSCAN(
-        eps=0.5, min_samples=5, metric=_altered_EuclideanDist, metric_params={"a": a}
+        eps=const.DB_EPS,
+        min_samples=const.DB_MIN_SAMPLES,
+        metric=_altered_EuclideanDist,
     )
 
     # Fit and predict
@@ -28,16 +34,16 @@ def apply_constraints(detObj):
     ef_doppler = np.empty((0,), dtype="int16")
 
     # Parse every data point in the detObj
-    for index in range(data_range.len()):
+    for index in range(len(data_range)):
         # Remove data points out of field of interest (range (and azimuth but not implemented yet))
         # Remove Static Clutter
 
         if (
-            data_range[index] > 0.1
-            and data_range[index] < 15
-            and data_doppler[index] > 0
+            data_range[index] > const.C_RANGE_MIN
+            and data_range[index] < const.C_RANGE_MAX
+            and data_doppler[index] > const.C_DOPPLER_THRES
         ):
-            ef_coords = np.append(ef_coords, data_coords[index, :], axis=0)
+            ef_coords = np.append(ef_coords, [data_coords[index, :]], axis=0)
             ef_doppler = np.append(ef_doppler, data_doppler[index])
 
     # ef_coords has a shape of (M, 3)
