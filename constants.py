@@ -1,6 +1,7 @@
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
-P_DATA_PATH = "./data/training_data.csv"
+P_LOG_PATH = "./dataset/log/"
+P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
@@ -22,3 +23,7 @@ DB_MIN_SAMPLES = 5
 ENABLE_2D_VIEW = True
 ENABLE_3D_VIEW = True
 ENABLE_DATA_LOGGING = False
+
+# Training
+TR_EXPERIMENT_ID = "2"
+TR_CLASS = "no_luggage"

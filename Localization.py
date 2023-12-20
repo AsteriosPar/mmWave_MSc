@@ -19,10 +19,8 @@ def apply_DBscan(data):
         metric=_altered_EuclideanDist,
     )
 
-    # Fit and predict
-    labels = dbscan.fit_predict(data)
-
-    return labels
+    # Clustering labels
+    return dbscan.fit_predict(data)
 
 
 def apply_constraints(detObj):
@@ -37,7 +35,6 @@ def apply_constraints(detObj):
     for index in range(len(data_range)):
         # Remove data points out of field of interest (range (and azimuth but not implemented yet))
         # Remove Static Clutter
-
         if (
             data_range[index] > const.C_RANGE_MIN
             and data_range[index] < const.C_RANGE_MAX

@@ -50,6 +50,10 @@ class Visualizer:
             self.ax3.set_zlabel("Z")
             self.ax3.set_title("Scatter plot of procesed and clustered PointCloud")
 
+            # Manually set the color of the outlier points as gray
+            self.cmap = plt.cm.viridis
+            self.cmap.set_bad(color="grey", alpha=1.0)
+
         plt.show(block=False)  # Set block=False to allow continuing execution
 
     def update(self, coords, labels=None):
@@ -73,7 +77,7 @@ class Visualizer:
 
         if labels is not None and self.cluster:
             self.scatter3.remove()
-            self.scatter3 = self.ax3.scatter(x, y, z, c=labels, cmap="viridis")
+            self.scatter3 = self.ax3.scatter(x, y, z, c=labels, cmap=self.cmap)
 
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating

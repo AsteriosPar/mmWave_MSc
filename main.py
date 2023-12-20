@@ -10,10 +10,10 @@ from Localization import apply_DBscan, apply_constraints
 
 
 def main():
-    # Specify the data logging path
-    data_path = const.P_DATA_PATH
-    if os.path.exists(data_path):
-        os.remove(data_path)
+    # Specify the data logging path according to the labeled class
+    cur_log_path = os.path.join(const.P_LOG_PATH, const.TR_CLASS)
+    if not os.path.exists(cur_log_path):
+        os.makedirs(cur_log_path)
 
     IWR1443 = ReadIWR14xx(
         const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
@@ -26,7 +26,7 @@ def main():
     # Control loop
     dataOk, frameNumber, detObj = IWR1443.read()
     frame_count = 0
-    data_buffer = pd.DataFrame()
+    # data_buffer = pd.DataFrame()
 
     while True:
         try:
@@ -51,40 +51,50 @@ def main():
                     ):
                         # Prepare data for logging
                         data = {
-                            "Frame": frameNumber,
+                            # "Frame": frameNumber,
                             "X": detObj["x"],
                             "Y": detObj["y"],
-                            "Label": "A",
+                            "Z": detObj["z"],
+                            # "Label": "A",
                         }
 
                         # Store data in the data path
                         df = pd.DataFrame(data)
-                        # data_buffer = data_buffer.append(df, ignore_index=True)
-                        data_buffer = pd.concat([data_buffer, df], ignore_index=True)
+                        df.to_csv(
+                            os.path.join(
+                                cur_log_path,
+                                f"{const.TR_EXPERIMENT_ID}_{frameNumber}.csv",
+                            ),
+                            mode="w",
+                            index=False,
+                            header=False,
+                        )
+                        # # data_buffer = data_buffer.append(df, ignore_index=True)
+                        # data_buffer = pd.concat([data_buffer, df], ignore_index=True)
 
-                        if len(data_buffer) >= const.FB_BUFFER_SIZE:
-                            data_buffer.to_csv(
-                                data_path,
-                                mode="a",
-                                index=False,
-                                header=False,
-                            )
+                        # if len(data_buffer) >= const.FB_BUFFER_SIZE:
+                        #     data_buffer.to_csv(
+                        #         cur_log_path,
+                        #         mode="a",
+                        #         index=False,
+                        #         header=False,
+                        #     )
 
-                            # Clear the buffer
-                            data_buffer.drop(data_buffer.index, inplace=True)
+                        #     # Clear the buffer
+                        #     data_buffer.drop(data_buffer.index, inplace=True)
 
                 frame_count += 1
 
             time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
         except KeyboardInterrupt:
             plt.close()
-            if const.ENABLE_DATA_LOGGING:
-                data_buffer.to_csv(
-                    data_path,
-                    mode="a",
-                    index=False,
-                    header=False,
-                )
+            # if const.ENABLE_DATA_LOGGING:
+            #     data_buffer.to_csv(
+            #         cur_log_path,
+            #         mode="a",
+            #         index=False,
+            #         header=False,
+            #     )
             del IWR1443
             break
 
