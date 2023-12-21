@@ -22,7 +22,7 @@ DB_MIN_SAMPLES = 5
 # Enable actions
 ENABLE_2D_VIEW = True
 ENABLE_3D_VIEW = True
-ENABLE_DATA_LOGGING = False
+ENABLE_DATA_LOGGING = True
 
 # Training
 TR_EXPERIMENT_ID = "2"
