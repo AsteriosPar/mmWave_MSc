@@ -5,6 +5,11 @@ P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
+# Monitor Coordinates
+M_X = 0.6
+M_Y = -1
+M_Z = 0.6
+
 # Frames and Buffering
 FB_FRAMES_SKIP = 5
 FB_BUFFER_SIZE = 100
@@ -22,7 +27,7 @@ DB_MIN_SAMPLES = 5
 # Enable actions
 ENABLE_2D_VIEW = True
 ENABLE_3D_VIEW = True
-ENABLE_DATA_LOGGING = True
+ENABLE_DATA_LOGGING = False
 
 # Training
 TR_EXPERIMENT_ID = "2"

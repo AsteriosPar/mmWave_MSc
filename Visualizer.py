@@ -1,5 +1,7 @@
 import numpy as np
+import math
 import matplotlib.pyplot as plt
+from constants import M_X, M_Y, M_Z
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 
@@ -56,6 +58,19 @@ class Visualizer:
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
+    def calc_square(self, x, y, z):
+        y_dist = y - M_Y
+        x_dist = x - M_X
+        z_dist = z - M_Z
+
+        x1 = -M_Y / (y_dist / x_dist)
+        z1 = -M_Z / (y_dist / z_dist)
+
+        screen_x = x1 + M_X
+        screen_z = z1 + M_Z
+
+        return (screen_x, screen_z)
+
     def update(self, coords, labels=None):
         x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
@@ -64,7 +79,7 @@ class Visualizer:
             for patch in self.ax2.patches:
                 patch.remove()
 
-            center = (-np.mean(x), np.mean(z))
+            center = self.calc_square(x, y, z)
             # Plot the filled square with updated center coordinates and alpha
             square = Rectangle(
                 (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
