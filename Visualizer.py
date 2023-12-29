@@ -64,7 +64,7 @@ class Visualizer:
         z_dist = z - M_Z
 
         x1 = -M_Y / (y_dist / x_dist)
-        z1 = -M_Z / (y_dist / z_dist)
+        z1 = -M_Y / (y_dist / z_dist)
 
         screen_x = x1 + M_X
         screen_z = z1 + M_Z

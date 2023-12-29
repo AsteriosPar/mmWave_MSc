@@ -21,8 +21,8 @@ C_DOPPLER_THRES = 0
 
 # DBScan
 DB_Z_WEIGHT = 0.3
-DB_EPS = 0.5
-DB_MIN_SAMPLES = 5
+DB_EPS = 0.05
+DB_MIN_SAMPLES = 20
 
 # Enable actions
 ENABLE_2D_VIEW = True
