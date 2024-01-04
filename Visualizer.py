@@ -79,7 +79,8 @@ class Visualizer:
             for patch in self.ax2.patches:
                 patch.remove()
 
-            center = self.calc_square(x, y, z)
+            xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
+            center = self.calc_square(xo, yo, zo)
             # Plot the filled square with updated center coordinates and alpha
             square = Rectangle(
                 (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),

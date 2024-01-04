@@ -20,7 +20,23 @@ def apply_DBscan(data):
     )
 
     # Clustering labels
-    return dbscan.fit_predict(data)
+    labels = dbscan.fit_predict(data)
+
+    # label of -1 means noice so we exclude it
+    unique_labels = set(labels) - {-1}
+
+    # Create a dictionary to store points for each cluster
+    clustered_points = {label: [] for label in unique_labels}
+
+    # Iterate through data and assign points to clusters
+    for i, label in enumerate(labels):
+        if label != -1:
+            clustered_points[label].append(data[i])
+
+    # Convert the dictionary to a list of clustered points
+    clusters = list(clustered_points.values())
+
+    return clusters
 
 
 def apply_constraints(detObj):

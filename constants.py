@@ -1,3 +1,8 @@
+import numpy as np
+import math
+from filterpy.common import Q_discrete_white_noise, Q_continuous_white_noise
+from scipy.linalg import block_diag
+
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
 P_LOG_PATH = "./dataset/log/"
@@ -32,3 +37,94 @@ ENABLE_DATA_LOGGING = False
 # Training
 TR_EXPERIMENT_ID = "2"
 TR_CLASS = "no_luggage"
+
+# EKF
+EKF_DT = 0.05
+EKF_PHI_S = 0.1
+EKF_R_STD = 0.35
+EKF_Q_STD = 0.04
+# State Transition Matrix
+EKF_F = np.array(
+    [
+        [1, 0, 0, EKF_DT, 0, 0],
+        [0, 1, 0, 0, EKF_DT, 0],
+        [0, 0, 1, 0, 0, EKF_DT],
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1],
+    ]
+)
+# Measurement Matrix
+EKF_H = np.array(
+    [
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+    ]
+)
+
+q1 = Q_discrete_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
+EKF_Q_DISCR = block_diag(q1, q1)
+
+q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
+EKF_Q_CONT = block_diag(q2, q2)
+
+
+def process_noise_covariance_matrix(dt):
+    return np.array(
+        [
+            [(1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0, 0],
+            [0, (1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0],
+            [
+                0,
+                0,
+                (1 / 4) * dt**4,
+                0,
+                0,
+                (1 / 2) * dt**3,
+            ],
+            [(1 / 2) * dt**3, 0, 0, dt**2, 0, 0],
+            [0, (1 / 2) * dt**3, 0, 0, dt**2, 0],
+            [0, 0, (1 / 2) * dt**3, 0, 0, dt**2],
+        ]
+    )
+
+
+def jacobian_matrix(state_vec):
+    r = math.sqrt(state_vec[0] ** 2 + state_vec[1] ** 2 + state_vec[2] ** 2)
+    return np.array(
+        [
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+            [
+                (
+                    state_vec[1]
+                    * (state_vec[3] * state_vec[1] - state_vec[4] * state_vec[0])
+                    + state_vec[2](
+                        state_vec[3] * state_vec[2] - state_vec[5] * state_vec[0]
+                    )
+                )
+                / (r**3),
+                (
+                    state_vec[0]
+                    * (state_vec[4] * state_vec[0] - state_vec[3] * state_vec[1])
+                    + state_vec[2](
+                        state_vec[4] * state_vec[2] - state_vec[5] * state_vec[1]
+                    )
+                )
+                / (r**3),
+                (
+                    state_vec[0]
+                    * (state_vec[5] * state_vec[0] - state_vec[3] * state_vec[2])
+                    + state_vec[1](
+                        state_vec[5] * state_vec[1] - state_vec[4] * state_vec[2]
+                    )
+                )
+                / (r**3),
+                state_vec[0] / r,
+                state_vec[1] / r,
+                state_vec[2] / r,
+            ],
+        ]
+    )
