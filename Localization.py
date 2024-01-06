@@ -42,7 +42,7 @@ def apply_DBscan(data):
 
 def apply_constraints(detObj):
     data_coords = np.column_stack((detObj["x"], detObj["y"], detObj["z"]))
-    data_doppler = np.array(detObj["doppler"])
+    # data_doppler = np.array(detObj["doppler"])
     data_range = np.array(detObj["range"])
 
     ef_coords = np.empty((0, 3), dtype="int16")
@@ -55,13 +55,14 @@ def apply_constraints(detObj):
         if (
             data_range[index] > const.C_RANGE_MIN
             and data_range[index] < const.C_RANGE_MAX
-            and data_doppler[index] > const.C_DOPPLER_THRES
+            # and data_doppler[index] > const.C_DOPPLER_THRES
         ):
             ef_coords = np.append(ef_coords, [data_coords[index, :]], axis=0)
-            ef_doppler = np.append(ef_doppler, data_doppler[index])
+            # ef_doppler = np.append(ef_doppler, data_doppler[index])
 
     # ef_coords has a shape of (M, 3)
-    return (ef_doppler, ef_coords)
+    # return (ef_doppler, ef_coords)
+    return ef_coords
 
 
 # def split_clusters(points, labels):

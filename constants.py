@@ -20,7 +20,7 @@ FB_FRAMES_SKIP = 5
 FB_BUFFER_SIZE = 100
 
 # Scene constraints and Clutter Removal
-C_RANGE_MIN = 0.1
+C_RANGE_MIN = 0
 C_RANGE_MAX = 12
 C_DOPPLER_THRES = 0
 
@@ -30,7 +30,7 @@ DB_EPS = 0.05
 DB_MIN_SAMPLES = 20
 
 # Enable actions
-ENABLE_2D_VIEW = True
+ENABLE_2D_VIEW = False
 ENABLE_3D_VIEW = True
 ENABLE_DATA_LOGGING = False
 

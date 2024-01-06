@@ -114,6 +114,12 @@ class TrackBuffer:
         self.tracks = []
         # TODO: create a structure that erases the inactive tracks or just keeps the active ones.
 
+    def has_active_tracks(self):
+        if len(self.tracks) != 0:
+            return True
+        else:
+            return False
+
     def _calc_dist_fun(self, full_set):
         dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
 
@@ -144,9 +150,12 @@ class TrackBuffer:
         # return dist_matrix
         return simple_approach
 
-    def add_track(self, track):
-        self.tracks.append(track)
-        track.id = len(self.tracks) - 1
+    def add_tracks(self, new_clusters):
+        for new_cluster in new_clusters:
+            new_track = ClusterTrack(PointCluster(np.array(new_cluster)))
+            new_track.id = len(self.tracks)
+
+            self.tracks.append(new_track)
 
     def predict_all(self):
         for track in self.tracks:
@@ -177,7 +186,7 @@ class TrackBuffer:
         return unassigned
 
 
-def pseudo_main(pointcloud, trackbuffer: TrackBuffer):
+def perform_tracking(pointcloud, trackbuffer: TrackBuffer):
     # Prediction Step
     trackbuffer.predict_all()
 
@@ -193,5 +202,4 @@ def pseudo_main(pointcloud, trackbuffer: TrackBuffer):
         new_clusters = apply_DBscan(unassigned)
 
     # Create new track for every new cluster
-    for new_cluster in new_clusters:
-        trackbuffer.add_track(ClusterTrack(PointCluster(np.array(new_cluster))))
+    trackbuffer.add_tracks(new_clusters)

@@ -7,6 +7,7 @@ import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
 from Localization import apply_DBscan, apply_constraints
+from Tracking import TrackBuffer, perform_tracking
 
 
 def main():
@@ -26,6 +27,7 @@ def main():
     # Control loop
     dataOk, frameNumber, detObj = IWR1443.read()
     frame_count = 0
+    trackbuffer = TrackBuffer()
     # data_buffer = pd.DataFrame()
 
     while True:
@@ -38,54 +40,57 @@ def main():
                 # Apply scene constraints and static clutter removal
                 effective_data = apply_constraints(detObj)
 
-                if len(effective_data[0]) != 0:
-                    # DBScan Clustering
-                    # UPDATE: It now returns a list of all clusters
-                    cluster_labels = apply_DBscan(effective_data[1])
+                if effective_data.shape[0] != 0:
+                    if not trackbuffer.has_active_tracks():
+                        clusters = apply_DBscan(effective_data)
+                        trackbuffer.add_tracks(clusters)
+
+                    else:
+                        perform_tracking(effective_data, trackbuffer)
 
                     # Update visualization graphs
                     # TODO: This does not handle the visualization correct anymore
-                    figure.update(effective_data[1], cluster_labels)
+                    figure.update(trackbuffer)
 
-                    if (
-                        frame_count % const.FB_FRAMES_SKIP == 0
-                        and const.ENABLE_DATA_LOGGING
-                    ):
-                        # Prepare data for logging
-                        data = {
-                            # "Frame": frameNumber,
-                            "X": detObj["x"],
-                            "Y": detObj["y"],
-                            "Z": detObj["z"],
-                            # "Label": "A",
-                        }
+                # if (
+                #     frame_count % const.FB_FRAMES_SKIP == 0
+                #     and const.ENABLE_DATA_LOGGING
+                # ):
+                #     # Prepare data for logging
+                #     data = {
+                #         # "Frame": frameNumber,
+                #         "X": detObj["x"],
+                #         "Y": detObj["y"],
+                #         "Z": detObj["z"],
+                #         # "Label": "A",
+                #     }
 
-                        # Store data in the data path
-                        df = pd.DataFrame(data)
-                        df.to_csv(
-                            os.path.join(
-                                cur_log_path,
-                                f"{const.TR_EXPERIMENT_ID}_{frameNumber}.csv",
-                            ),
-                            mode="w",
-                            index=False,
-                            header=False,
-                        )
-                        # # data_buffer = data_buffer.append(df, ignore_index=True)
-                        # data_buffer = pd.concat([data_buffer, df], ignore_index=True)
+                #     # Store data in the data path
+                #     df = pd.DataFrame(data)
+                #     df.to_csv(
+                #         os.path.join(
+                #             cur_log_path,
+                #             f"{const.TR_EXPERIMENT_ID}_{frameNumber}.csv",
+                #         ),
+                #         mode="w",
+                #         index=False,
+                #         header=False,
+                #     )
+                # # data_buffer = data_buffer.append(df, ignore_index=True)
+                # data_buffer = pd.concat([data_buffer, df], ignore_index=True)
 
-                        # if len(data_buffer) >= const.FB_BUFFER_SIZE:
-                        #     data_buffer.to_csv(
-                        #         cur_log_path,
-                        #         mode="a",
-                        #         index=False,
-                        #         header=False,
-                        #     )
+                # if len(data_buffer) >= const.FB_BUFFER_SIZE:
+                #     data_buffer.to_csv(
+                #         cur_log_path,
+                #         mode="a",
+                #         index=False,
+                #         header=False,
+                #     )
 
-                        #     # Clear the buffer
-                        #     data_buffer.drop(data_buffer.index, inplace=True)
+                #     # Clear the buffer
+                #     data_buffer.drop(data_buffer.index, inplace=True)
 
-                frame_count += 1
+                # frame_count += 1
 
             time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
         except KeyboardInterrupt:

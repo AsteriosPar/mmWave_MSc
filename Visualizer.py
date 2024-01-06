@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from constants import M_X, M_Y, M_Z
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
+from Tracking import TrackBuffer
 
 
 class Visualizer:
@@ -71,29 +72,39 @@ class Visualizer:
 
         return (screen_x, screen_z)
 
-    def update(self, coords, labels=None):
-        x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
+    def update(self, trackbuffer: TrackBuffer, labels=None):
+        self.scatter3.remove()
+        # for patch in self.ax3.patches:
+        #     patch.remove()
 
-        # Update the square in the 2D plot
-        if self.rect_2d:
-            for patch in self.ax2.patches:
-                patch.remove()
+        for track in trackbuffer.tracks:
+            coords = track.cluster.pointcloud
+            x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-            xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
-            center = self.calc_square(xo, yo, zo)
-            # Plot the filled square with updated center coordinates and alpha
-            square = Rectangle(
-                (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
-                self.rect_size,
-                self.rect_size,
-                alpha=0.5,
-                color="b",
+            # Update the square in the 2D plot
+            if self.rect_2d:
+                for patch in self.ax2.patches:
+                    patch.remove()
+
+                xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
+                center = self.calc_square(xo, yo, zo)
+                # Plot the filled square with updated center coordinates and alpha
+                square = Rectangle(
+                    (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
+                    self.rect_size,
+                    self.rect_size,
+                    alpha=0.5,
+                    color="b",
+                )
+                self.ax2.add_patch(square)
+
+            # Update 3d plot
+            color = np.random.rand(
+                3,
             )
-            self.ax2.add_patch(square)
-
-        if labels is not None and self.cluster:
-            self.scatter3.remove()
-            self.scatter3 = self.ax3.scatter(x, y, z, c=labels, cmap=self.cmap)
+            self.scatter3 = self.ax3.scatter(x, y, z, c=[color], marker="o")
+            # self.ax3.add_patch
+            # TODO: Add bounding boxes
 
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
