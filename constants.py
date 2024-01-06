@@ -26,7 +26,7 @@ C_DOPPLER_THRES = 0
 
 # DBScan
 DB_Z_WEIGHT = 0.3
-DB_EPS = 0.05
+DB_EPS = 0.1
 DB_MIN_SAMPLES = 20
 
 # Enable actions
@@ -66,8 +66,8 @@ EKF_H = np.array(
 q1 = Q_discrete_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
 EKF_Q_DISCR = block_diag(q1, q1)
 
-q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
-EKF_Q_CONT = block_diag(q2, q2)
+# q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
+# EKF_Q_CONT = block_diag(q2, q2)
 
 
 # point num estimation params
@@ -78,61 +78,61 @@ EKF_A_SPR = 0.9  # Revise
 EKF_G = 3
 
 
-def process_noise_covariance_matrix(dt):
-    return np.array(
-        [
-            [(1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0, 0],
-            [0, (1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0],
-            [
-                0,
-                0,
-                (1 / 4) * dt**4,
-                0,
-                0,
-                (1 / 2) * dt**3,
-            ],
-            [(1 / 2) * dt**3, 0, 0, dt**2, 0, 0],
-            [0, (1 / 2) * dt**3, 0, 0, dt**2, 0],
-            [0, 0, (1 / 2) * dt**3, 0, 0, dt**2],
-        ]
-    )
+# def process_noise_covariance_matrix(dt):
+#     return np.array(
+#         [
+#             [(1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0, 0],
+#             [0, (1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0],
+#             [
+#                 0,
+#                 0,
+#                 (1 / 4) * dt**4,
+#                 0,
+#                 0,
+#                 (1 / 2) * dt**3,
+#             ],
+#             [(1 / 2) * dt**3, 0, 0, dt**2, 0, 0],
+#             [0, (1 / 2) * dt**3, 0, 0, dt**2, 0],
+#             [0, 0, (1 / 2) * dt**3, 0, 0, dt**2],
+#         ]
+#     )
 
 
-def jacobian_matrix(state_vec):
-    r = math.sqrt(state_vec[0] ** 2 + state_vec[1] ** 2 + state_vec[2] ** 2)
-    return np.array(
-        [
-            [1, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0],
-            [
-                (
-                    state_vec[1]
-                    * (state_vec[3] * state_vec[1] - state_vec[4] * state_vec[0])
-                    + state_vec[2](
-                        state_vec[3] * state_vec[2] - state_vec[5] * state_vec[0]
-                    )
-                )
-                / (r**3),
-                (
-                    state_vec[0]
-                    * (state_vec[4] * state_vec[0] - state_vec[3] * state_vec[1])
-                    + state_vec[2](
-                        state_vec[4] * state_vec[2] - state_vec[5] * state_vec[1]
-                    )
-                )
-                / (r**3),
-                (
-                    state_vec[0]
-                    * (state_vec[5] * state_vec[0] - state_vec[3] * state_vec[2])
-                    + state_vec[1](
-                        state_vec[5] * state_vec[1] - state_vec[4] * state_vec[2]
-                    )
-                )
-                / (r**3),
-                state_vec[0] / r,
-                state_vec[1] / r,
-                state_vec[2] / r,
-            ],
-        ]
-    )
+# def jacobian_matrix(state_vec):
+#     r = math.sqrt(state_vec[0] ** 2 + state_vec[1] ** 2 + state_vec[2] ** 2)
+#     return np.array(
+#         [
+#             [1, 0, 0, 0, 0, 0],
+#             [0, 1, 0, 0, 0, 0],
+#             [0, 0, 1, 0, 0, 0],
+#             [
+#                 (
+#                     state_vec[1]
+#                     * (state_vec[3] * state_vec[1] - state_vec[4] * state_vec[0])
+#                     + state_vec[2](
+#                         state_vec[3] * state_vec[2] - state_vec[5] * state_vec[0]
+#                     )
+#                 )
+#                 / (r**3),
+#                 (
+#                     state_vec[0]
+#                     * (state_vec[4] * state_vec[0] - state_vec[3] * state_vec[1])
+#                     + state_vec[2](
+#                         state_vec[4] * state_vec[2] - state_vec[5] * state_vec[1]
+#                     )
+#                 )
+#                 / (r**3),
+#                 (
+#                     state_vec[0]
+#                     * (state_vec[5] * state_vec[0] - state_vec[3] * state_vec[2])
+#                     + state_vec[1](
+#                         state_vec[5] * state_vec[1] - state_vec[4] * state_vec[2]
+#                     )
+#                 )
+#                 / (r**3),
+#                 state_vec[0] / r,
+#                 state_vec[1] / r,
+#                 state_vec[2] / r,
+#             ],
+#         ]
+#     )

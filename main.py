@@ -34,6 +34,7 @@ def main():
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
+                print(f"Tracks:", len(trackbuffer.tracks))
                 # update the raw data scatter plot
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 

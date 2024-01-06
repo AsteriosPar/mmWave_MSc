@@ -53,6 +53,10 @@ class ClusterTrack:
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
         self.status = 1
+        self.lifetime = 0
+        self.color = np.random.rand(
+            3,
+        )
 
     def predict_state(self):
         self.state.predict()
@@ -79,9 +83,10 @@ class ClusterTrack:
             # variance. (self.cluster.point_num + 1) / (self.cluster.point_num - 1) is a common correction factor used in statistics.
             # This factor adjusts the spread to account for the fact that when estimating population variance from a sample,
             # the sample variance tends to be biased low. The formula aims to correct this bias.
-            spread = (
-                spread * (self.cluster.point_num + 1) / (self.cluster.point_num - 1)
-            )
+            if self.cluster.point_num != 1:
+                spread = (
+                    spread * (self.cluster.point_num + 1) / (self.cluster.point_num - 1)
+                )
 
             # Ensure the computed spread estimation is between 1x and 2x of configured limits
             spread = min(2 * const.EKF_SPREAD_LIM[m], spread)
@@ -100,13 +105,15 @@ class ClusterTrack:
         self._estimate_measurement_spread()
 
     def get_Rm(self):
-        return np.diag(((self.spread_est / 2) ** 2))
+        rm = np.diag(((self.spread_est / 2) ** 2))
+        # print(f"Rm dim:", rm.shape)
+        return rm
 
     def get_Rc(self):
-        return self.get_Rm / self.cluster.point_num
+        return self.get_Rm() / self.cluster.point_num
 
     def update_state(self):
-        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc)
+        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
 
 
 class TrackBuffer:
@@ -123,29 +130,35 @@ class TrackBuffer:
     def _calc_dist_fun(self, full_set):
         dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
 
-        simple_approach = np.empty((full_set.shape[0]))
+        # simple_approach = np.empty((full_set.shape[0]))
+        simple_approach = np.full(full_set.shape[0], None, dtype=object)
 
         for j, track in enumerate(self.tracks):
             # Find group residual covariance matrix
             # NOTE: Add D
-            H_i = np.dot(const.EKF_H, track.state.inst.x)
-            C_g_i = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
+            H_i = np.dot(const.EKF_H, track.state.inst.x).flatten()
+
+            # TODO: This is wrong. Fix it
+            # C_g_i = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
+            C_g_i = track.get_Rm()
 
             for i, point in enumerate(full_set):
                 # Find innovation for each measurement
-                y_ij = np.array(point) - H_i.flatten()
+                y_ij = np.array(point) - H_i
 
                 # Find distance function (d^2)
-                dist_matrix[i][j] = np.dot(np.dot(y_ij.T, np.linalg.inv(C_g_i)), y_ij)
+                # TODO: This is also wrong
+                # dist_matrix[i][j] = np.dot(np.dot(y_ij.T, np.linalg.inv(C_g_i)), y_ij)
+                dist_matrix[i][j] = np.dot(np.dot(y_ij.T, C_g_i), y_ij)
 
                 # Perform G threshold check
                 if dist_matrix[i][j] < const.EKF_G:
-                    # dist_matrix[i][j] = None
                     # Just choose the closest mahalanobis distance
                     if simple_approach[i] is None:
                         simple_approach[i] = j
-                    elif dist_matrix[i][j] < dist_matrix[i][simple_approach[i]]:
-                        simple_approach[i] = j
+                    else:
+                        if dist_matrix[i][j] < dist_matrix[i][int(simple_approach[i])]:
+                            simple_approach[i] = j
 
         # return dist_matrix
         return simple_approach
@@ -167,11 +180,11 @@ class TrackBuffer:
 
     def associate_points_to_tracks(self, full_set):
         unassigned = []
-        clusters = [[] for _ in range(len(full_set))]
+        clusters = [[] for _ in range(len(self.tracks))]
         simple_matrix = self._calc_dist_fun(full_set)
 
         for i, point in enumerate(full_set):
-            if simple_matrix[i] in None:
+            if simple_matrix[i] is None:
                 unassigned.append(point)
             else:
                 clusters[simple_matrix[i]].append(point)
@@ -181,7 +194,10 @@ class TrackBuffer:
         for j, track in enumerate(self.tracks):
             # TODO: Check if the cluster[j] is empty or it does not pass the threshold of minimum points
             # then increment the lifetime counter or perform state change or something.
-            track.associate_pointcloud(np.array(clusters[j], dtype=np.dtype("i,i,i")))
+            if len(clusters[j]) == 0:
+                track.lifetime += 1
+            else:
+                track.associate_pointcloud(np.array(clusters[j]))
 
         return unassigned
 
@@ -197,6 +213,7 @@ def perform_tracking(pointcloud, trackbuffer: TrackBuffer):
     # Update Step
     trackbuffer.update_all()
 
+    new_clusters = []
     # Clustering of the remainder step
     if len(unassigned) != 0:
         new_clusters = apply_DBscan(unassigned)

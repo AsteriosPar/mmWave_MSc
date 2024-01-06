@@ -12,7 +12,7 @@ class Visualizer:
         self,
         enable_2d=False,
         enable_cluster=False,
-        axis_3d: [float, float, float] = [2.0, 2.0, 2.0],
+        axis_3d: [float, float, float] = [2.0, 4.0, 2.0],
         axis_2d: [float, float] = [1.5, 1.5],
         rect_size: float = 0.5,
     ):
@@ -45,17 +45,12 @@ class Visualizer:
         if self.cluster:
             self.ax3 = fig.add_subplot(gs[1, 0], projection="3d")
             self.scatter3 = self.ax3.scatter([], [], [])
-            self.ax3.set_xlim(0, axis_3d[0])
+            self.ax3.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
             self.ax3.set_ylim(0, axis_3d[1])
             self.ax3.set_zlim(0, axis_3d[2])
             self.ax3.set_xlabel("X")
             self.ax3.set_ylabel("Y")
             self.ax3.set_zlabel("Z")
-            self.ax3.set_title("Scatter plot of procesed and clustered PointCloud")
-
-            # Manually set the color of the outlier points as gray
-            self.cmap = plt.cm.viridis
-            self.cmap.set_bad(color="grey", alpha=1.0)
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
@@ -72,39 +67,36 @@ class Visualizer:
 
         return (screen_x, screen_z)
 
-    def update(self, trackbuffer: TrackBuffer, labels=None):
-        self.scatter3.remove()
-        # for patch in self.ax3.patches:
-        #     patch.remove()
+    def update(self, trackbuffer: TrackBuffer):
+        if len(trackbuffer.tracks) != 0:
+            self.scatter3.remove()
 
         for track in trackbuffer.tracks:
             coords = track.cluster.pointcloud
             x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
             # Update the square in the 2D plot
-            if self.rect_2d:
-                for patch in self.ax2.patches:
-                    patch.remove()
+            # if self.rect_2d:
+            #     for patch in self.ax2.patches:
+            #         patch.remove()
 
-                xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
-                center = self.calc_square(xo, yo, zo)
-                # Plot the filled square with updated center coordinates and alpha
-                square = Rectangle(
-                    (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
-                    self.rect_size,
-                    self.rect_size,
-                    alpha=0.5,
-                    color="b",
-                )
-                self.ax2.add_patch(square)
+            #     xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
+            #     center = self.calc_square(xo, yo, zo)
+            #     # Plot the filled square with updated center coordinates and alpha
+            #     square = Rectangle(
+            #         (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
+            #         self.rect_size,
+            #         self.rect_size,
+            #         alpha=0.5,
+            #         color="b",
+            #     )
+            #     self.ax2.add_patch(square)
 
             # Update 3d plot
-            color = np.random.rand(
-                3,
-            )
-            self.scatter3 = self.ax3.scatter(x, y, z, c=[color], marker="o")
-            # self.ax3.add_patch
-            # TODO: Add bounding boxes
+            self.scatter3 = self.ax3.scatter(x, y, z, c=[track.color], marker="o")
+            self.ax3.set_title(f"Track Number: {len(trackbuffer.tracks)}", loc="left")
+
+        # TODO: Add bounding boxes
 
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
