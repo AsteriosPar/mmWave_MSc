@@ -40,9 +40,11 @@ def main():
 
                 if len(effective_data[0]) != 0:
                     # DBScan Clustering
+                    # UPDATE: It now returns a list of all clusters
                     cluster_labels = apply_DBscan(effective_data[1])
 
                     # Update visualization graphs
+                    # TODO: This does not handle the visualization correct anymore
                     figure.update(effective_data[1], cluster_labels)
 
                     if (

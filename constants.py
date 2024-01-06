@@ -70,6 +70,14 @@ q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
 EKF_Q_CONT = block_diag(q2, q2)
 
 
+# point num estimation params
+EKF_A_N = 0.9
+EKF_EST_POINTNUM = 100
+EKF_SPREAD_LIM = [2, 2, 4]  # Revise the numbers
+EKF_A_SPR = 0.9  # Revise
+EKF_G = 3
+
+
 def process_noise_covariance_matrix(dt):
     return np.array(
         [

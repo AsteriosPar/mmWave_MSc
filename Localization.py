@@ -1,6 +1,7 @@
 from sklearn.cluster import DBSCAN
 import constants as const
 import matplotlib.pyplot as plt
+from itertools import groupby
 import numpy as np
 
 
@@ -61,3 +62,18 @@ def apply_constraints(detObj):
 
     # ef_coords has a shape of (M, 3)
     return (ef_doppler, ef_coords)
+
+
+# def split_clusters(points, labels):
+#     sorted_data = sorted(zip(labels, points), key=lambda x: x[0])
+
+#     # Use groupby to group points by label
+#     grouped_points = {
+#         label: [p[1] for p in group]
+#         for label, group in groupby(sorted_data, key=lambda x: x[0])
+#     }
+
+#     # Convert the result to a list of lists (optional)
+#     result = [grouped_points[label] for label in sorted(set(labels))]
+
+#     return result
