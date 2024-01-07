@@ -43,17 +43,22 @@ EKF_DT = 0.05
 EKF_PHI_S = 0.1
 EKF_R_STD = 0.35
 EKF_Q_STD = 0.04
+
+
 # State Transition Matrix
-EKF_F = np.array(
-    [
-        [1, 0, 0, EKF_DT, 0, 0],
-        [0, 1, 0, 0, EKF_DT, 0],
-        [0, 0, 1, 0, 0, EKF_DT],
-        [0, 0, 0, 1, 0, 0],
-        [0, 0, 0, 0, 1, 0],
-        [0, 0, 0, 0, 0, 1],
-    ]
-)
+def EKF_F(mult):
+    return np.array(
+        [
+            [1, 0, 0, EKF_DT * mult, 0, 0],
+            [0, 1, 0, 0, EKF_DT * mult, 0],
+            [0, 0, 1, 0, 0, EKF_DT * mult],
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1],
+        ]
+    )
+
+
 # Measurement Matrix
 EKF_H = np.array(
     [
@@ -63,8 +68,13 @@ EKF_H = np.array(
     ]
 )
 
-q1 = Q_discrete_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
-EKF_Q_DISCR = block_diag(q1, q1)
+
+def EKF_Q_DISCR(mult):
+    return block_diag(
+        Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+        Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+    )
+
 
 # q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
 # EKF_Q_CONT = block_diag(q2, q2)

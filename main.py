@@ -50,8 +50,12 @@ def main():
                         perform_tracking(effective_data, trackbuffer)
 
                     # Update visualization graphs
-                    # TODO: This does not handle the visualization correct anymore
                     figure.update(trackbuffer)
+
+                trackbuffer.dt_multiplier = 1
+
+            else:
+                trackbuffer.dt_multiplier += 1
 
                 # if (
                 #     frame_count % const.FB_FRAMES_SKIP == 0

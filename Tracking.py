@@ -11,20 +11,16 @@ class KalmanState:
         # No control function
         self.inst = KalmanFilter(dim_x=6, dim_z=3)
 
-        self.inst.F = const.EKF_F
+        self.inst.F = const.EKF_F(1)
         self.inst.H = const.EKF_H
 
         # We assume independent noise in the x,y,z variables of equal standard deviations.
-        self.inst.Q = const.EKF_Q_DISCR
+        self.inst.Q = const.EKF_Q_DISCR(1)
         self.inst.R = np.eye(3) * const.EKF_R_STD**2
 
         # For initial values
         self.inst.x = np.array([[centroid[0], centroid[1], centroid[2], 0, 0, 0]]).T
         self.inst.P = np.eye(6) * 100.0
-
-    def predict(self):
-        self.inst.predict()
-        return self.inst.x, self.inst.P
 
 
 class PointCluster:
@@ -58,8 +54,10 @@ class ClusterTrack:
             3,
         )
 
-    def predict_state(self):
-        self.state.predict()
+    def predict_state(self, dt_multiplier):
+        self.state.inst.predict(
+            F=const.EKF_F(dt_multiplier), Q=const.EKF_Q_DISCR(dt_multiplier)
+        )
 
     def _estimate_point_num(self, enable=False):
         if enable:
@@ -121,6 +119,9 @@ class TrackBuffer:
         self.tracks = []
         # TODO: create a structure that erases the inactive tracks or just keeps the active ones.
 
+        # This field keeps track of the iterations that passed until we have valid measurements
+        self.dt_multiplier = 1
+
     def has_active_tracks(self):
         if len(self.tracks) != 0:
             return True
@@ -172,7 +173,7 @@ class TrackBuffer:
 
     def predict_all(self):
         for track in self.tracks:
-            track.predict_state()
+            track.predict_state(self.dt_multiplier)
 
     def update_all(self):
         for track in self.tracks:
