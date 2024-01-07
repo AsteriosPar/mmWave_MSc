@@ -2,6 +2,7 @@ import time
 import os
 import numpy as np
 import pandas as pd
+import csv
 import matplotlib.pyplot as plt
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
@@ -11,30 +12,66 @@ from Tracking import TrackBuffer, perform_tracking
 
 
 def main():
-    # Specify the data logging path according to the labeled class
-    cur_log_path = os.path.join(const.P_LOG_PATH, const.TR_CLASS)
-    if not os.path.exists(cur_log_path):
-        os.makedirs(cur_log_path)
+    if const.ENABLE_MODE == 0:
+        experiment_path = os.path.join(const.P_LOG_PATH, const.TR_EXPERIMENT_FILE)
+        if not os.path.exists(experiment_path):
+            raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
-    IWR1443 = ReadIWR14xx(
-        const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
-    )
-    SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
+        pointclouds = {}
 
-    # Specify the parameters for the data visualization
-    figure = Visualizer(const.ENABLE_2D_VIEW, const.ENABLE_3D_VIEW)
+        # Open the CSV file
+        with open(experiment_path, "r") as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                framenum = int(row[0])
+                coords = [float(row[1]), float(row[2]), float(row[3])]
+
+                if framenum in pointclouds:
+                    # Append coordinates to the existing lists
+                    for key, value in zip(["x", "y", "z"], coords):
+                        pointclouds[framenum][key].append(value)
+                else:
+                    # If not, create a new dictionary for the framenum
+                    pointclouds[framenum] = {
+                        "x": [coords[0]],
+                        "y": [coords[1]],
+                        "z": [coords[2]],
+                    }
+
+        frame_count = 0
+        SLEEPTIME = (
+            0.1  # set manually by checking the configuration file "frameCfg" 5th entry
+        )
+
+    else:
+        IWR1443 = ReadIWR14xx(
+            const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
+        )
+        SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
+
+    # dataOk, frameNumber, detObj = IWR1443.read()
+    figure = Visualizer()
+    trackbuffer = TrackBuffer()
 
     # Control loop
-    dataOk, frameNumber, detObj = IWR1443.read()
-    frame_count = 0
-    trackbuffer = TrackBuffer()
-    # data_buffer = pd.DataFrame()
-
     while True:
         try:
-            dataOk, frameNumber, detObj = IWR1443.read()
+            ######## Offline mode ###########
+            if const.ENABLE_MODE == 0:
+                frame_count += 1
+                if frame_count in pointclouds:
+                    dataOk = True
+                    detObj = pointclouds[frame_count]
+                else:
+                    dataOk = False
+
+            ######### Online mode ###########
+            else:
+                dataOk, _, detObj = IWR1443.read()
+
+            #################################
+
             if dataOk:
-                # print(f"Tracks:", len(trackbuffer.tracks))
                 # update the raw data scatter plot
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
@@ -57,57 +94,12 @@ def main():
             else:
                 trackbuffer.dt_multiplier += 1
 
-                # if (
-                #     frame_count % const.FB_FRAMES_SKIP == 0
-                #     and const.ENABLE_DATA_LOGGING
-                # ):
-                #     # Prepare data for logging
-                #     data = {
-                #         # "Frame": frameNumber,
-                #         "X": detObj["x"],
-                #         "Y": detObj["y"],
-                #         "Z": detObj["z"],
-                #         # "Label": "A",
-                #     }
-
-                #     # Store data in the data path
-                #     df = pd.DataFrame(data)
-                #     df.to_csv(
-                #         os.path.join(
-                #             cur_log_path,
-                #             f"{const.TR_EXPERIMENT_ID}_{frameNumber}.csv",
-                #         ),
-                #         mode="w",
-                #         index=False,
-                #         header=False,
-                #     )
-                # # data_buffer = data_buffer.append(df, ignore_index=True)
-                # data_buffer = pd.concat([data_buffer, df], ignore_index=True)
-
-                # if len(data_buffer) >= const.FB_BUFFER_SIZE:
-                #     data_buffer.to_csv(
-                #         cur_log_path,
-                #         mode="a",
-                #         index=False,
-                #         header=False,
-                #     )
-
-                #     # Clear the buffer
-                #     data_buffer.drop(data_buffer.index, inplace=True)
-
-                # frame_count += 1
-
             time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+
         except KeyboardInterrupt:
             plt.close()
-            # if const.ENABLE_DATA_LOGGING:
-            #     data_buffer.to_csv(
-            #         cur_log_path,
-            #         mode="a",
-            #         index=False,
-            #         header=False,
-            #     )
-            del IWR1443
+            if const.ENABLE_MODE == 1:
+                del IWR1443
             break
 
 

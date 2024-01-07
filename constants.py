@@ -3,12 +3,19 @@ import math
 from filterpy.common import Q_discrete_white_noise, Q_continuous_white_noise
 from scipy.linalg import block_diag
 
+OFFLINE = 0
+ONLINE = 1
+
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
 P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
+
+# Training
+TR_EXPERIMENT_FILE = "person1.csv"
+TR_CLASS = "no_luggage"
 
 # Monitor Coordinates
 M_X = 0.6
@@ -30,13 +37,9 @@ DB_EPS = 0.1
 DB_MIN_SAMPLES = 20
 
 # Enable actions
+ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
 ENABLE_2D_VIEW = False
 ENABLE_3D_VIEW = True
-ENABLE_DATA_LOGGING = False
-
-# Training
-TR_EXPERIMENT_ID = "2"
-TR_CLASS = "no_luggage"
 
 # EKF
 EKF_MAX_LIFETIME = 3

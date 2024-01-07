@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import constants as const
 from constants import M_X, M_Y, M_Z
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
@@ -10,8 +11,8 @@ from Tracking import TrackBuffer
 class Visualizer:
     def __init__(
         self,
-        enable_2d=False,
-        enable_cluster=False,
+        enable_2d=const.ENABLE_2D_VIEW,
+        enable_cluster=const.ENABLE_3D_VIEW,
         axis_3d: [float, float, float] = [2.0, 4.0, 2.0],
         axis_2d: [float, float] = [1.5, 1.5],
         rect_size: float = 0.5,
