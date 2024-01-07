@@ -28,7 +28,7 @@ class Visualizer:
 
         self.ax = fig.add_subplot(gs[0, 0], projection="3d")
         self.scatter = self.ax.scatter([], [], [])
-        self.ax.set_xlim(0, axis_3d[0])
+        self.ax.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
         self.ax.set_ylim(0, axis_3d[1])
         self.ax.set_zlim(0, axis_3d[2])
         self.ax.set_title("Scatter plot of raw Point Cloud")
@@ -67,6 +67,11 @@ class Visualizer:
         screen_z = z1 + M_Z
 
         return (screen_x, screen_z)
+
+    def update_raw(self, x, y, z):
+        # Update the data in the 3D scatter plot
+        self.scatter._offsets3d = (x, y, z)
+        plt.draw()
 
     def update(self, trackbuffer: TrackBuffer):
         if len(trackbuffer.tracks) != 0:
@@ -118,8 +123,3 @@ class Visualizer:
 
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
-
-    def update_raw(self, x, y, z):
-        # Update the data in the 3D scatter plot
-        self.scatter._offsets3d = (x, y, z)
-        plt.draw()

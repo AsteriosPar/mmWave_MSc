@@ -1,7 +1,5 @@
 import time
 import os
-import numpy as np
-import pandas as pd
 import csv
 import matplotlib.pyplot as plt
 import constants as const
@@ -18,8 +16,6 @@ def main():
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
         pointclouds = {}
-
-        # Open the CSV file
         with open(experiment_path, "r") as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
@@ -39,9 +35,7 @@ def main():
                     }
 
         frame_count = 0
-        SLEEPTIME = (
-            0.1  # set manually by checking the configuration file "frameCfg" 5th entry
-        )
+        SLEEPTIME = 0.1  # config "frameCfg"
 
     else:
         IWR1443 = ReadIWR14xx(
@@ -49,15 +43,14 @@ def main():
         )
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
-    # dataOk, frameNumber, detObj = IWR1443.read()
     figure = Visualizer()
     trackbuffer = TrackBuffer()
 
     # Control loop
     while True:
         try:
-            ######## Offline mode ###########
             if const.ENABLE_MODE == 0:
+                # Offline mode
                 frame_count += 1
                 if frame_count in pointclouds:
                     dataOk = True
@@ -65,11 +58,9 @@ def main():
                 else:
                     dataOk = False
 
-            ######### Online mode ###########
             else:
+                # Online mode
                 dataOk, _, detObj = IWR1443.read()
-
-            #################################
 
             if dataOk:
                 # update the raw data scatter plot
