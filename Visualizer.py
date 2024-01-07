@@ -6,6 +6,7 @@ from constants import M_X, M_Y, M_Z
 from matplotlib.patches import Rectangle
 from matplotlib import gridspec
 from Tracking import TrackBuffer
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 
 
 class Visualizer:
@@ -47,11 +48,42 @@ class Visualizer:
             self.ax3 = fig.add_subplot(gs[1, 0], projection="3d")
             self.scatter3 = self.ax3.scatter([], [], [])
             self.ax3.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
-            self.ax3.set_ylim(0, axis_3d[1])
+            self.ax3.set_ylim(-1, axis_3d[1])
             self.ax3.set_zlim(0, axis_3d[2])
             self.ax3.set_xlabel("X")
             self.ax3.set_ylabel("Y")
             self.ax3.set_zlabel("Z")
+            self.ax3.invert_yaxis()
+            self.ax3.invert_xaxis()
+
+            rect_height = axis_3d[2]  # Set the height to cover the entire y-axis range
+            vertices = [
+                (-axis_3d[0] / 2, 0, 0),
+                (-axis_3d[0] / 2, 0, rect_height),
+                (axis_3d[0] / 2, 0, rect_height),
+                (axis_3d[0] / 2, 0, 0),
+            ]
+
+            # Create a Poly3DCollection
+            rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
+
+            # Add the rectangle to the Axes3D
+            self.ax3.add_collection3d(rectangle)
+
+            # Coordinates of the center of the sphere
+            center = (M_X, M_Y, M_Z)
+
+            # Radius of the sphere
+            radius = 0.1
+
+            # Create a sphere
+            phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
+            x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
+            y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
+            z_sphere = center[2] + radius * np.cos(theta)
+
+            # Plot the sphere
+            self.ax3.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
