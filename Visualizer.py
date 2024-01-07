@@ -35,12 +35,12 @@ class Visualizer:
         self.rect_2d = enable_2d
         self.cluster = enable_cluster
 
-        if self.rect_2d:
-            # Create a 2D plot for the square
-            self.ax2 = fig.add_subplot(gs[0, 1])
-            self.ax2.set_xlim(-self.axis_2d[0], self.axis_2d[0])
-            self.ax2.set_ylim(-self.axis_2d[1], self.axis_2d[1])
-            self.ax2.set_title("Vertical 2D square projection")
+        # if self.rect_2d:
+        #     # Create a 2D plot for the square
+        #     self.ax2 = fig.add_subplot(gs[0, 1])
+        #     self.ax2.set_xlim(-self.axis_2d[0], self.axis_2d[0])
+        #     self.ax2.set_ylim(-self.axis_2d[1], self.axis_2d[1])
+        #     self.ax2.set_title("Vertical 2D square projection")
 
         if self.cluster:
             self.ax3 = fig.add_subplot(gs[1, 0], projection="3d")
@@ -71,30 +71,43 @@ class Visualizer:
         if len(trackbuffer.tracks) != 0:
             self.scatter3.remove()
 
+        x_all = np.array([])  # Initialize as empty NumPy arrays
+        y_all = np.array([])
+        z_all = np.array([])
+        color_all = np.array([]).reshape(0, 3)
+
         for track in trackbuffer.tracks:
             coords = track.cluster.pointcloud
             x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-            # Update the square in the 2D plot
-            # if self.rect_2d:
-            #     for patch in self.ax2.patches:
-            #         patch.remove()
+            # Concatenate arrays directly
+            x_all = np.concatenate([x_all, x])
+            y_all = np.concatenate([y_all, y])
+            z_all = np.concatenate([z_all, z])
+            color_all = np.concatenate(
+                [color_all, np.repeat([track.color], len(x), axis=0)]
+            )
 
-            #     xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
-            #     center = self.calc_square(xo, yo, zo)
-            #     # Plot the filled square with updated center coordinates and alpha
-            #     square = Rectangle(
-            #         (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
-            #         self.rect_size,
-            #         self.rect_size,
-            #         alpha=0.5,
-            #         color="b",
-            #     )
-            #     self.ax2.add_patch(square)
+        # Update 3d plot
+        self.scatter3 = self.ax3.scatter(x_all, y_all, z_all, c=color_all, marker="o")
+        self.ax3.set_title(f"Track Number: {len(trackbuffer.tracks)}", loc="left")
 
-            # Update 3d plot
-            self.scatter3 = self.ax3.scatter(x, y, z, c=[track.color], marker="o")
-            self.ax3.set_title(f"Track Number: {len(trackbuffer.tracks)}", loc="left")
+        # Update the square in the 2D plot
+        # if self.rect_2d:
+        #     for patch in self.ax2.patches:
+        #         patch.remove()
+
+        #     xo, yo, zo = np.mean(x), np.mean(y), np.mean(z)
+        #     center = self.calc_square(xo, yo, zo)
+        #     # Plot the filled square with updated center coordinates and alpha
+        #     square = Rectangle(
+        #         (center[0] - self.rect_size / 2, center[1] - self.rect_size / 2),
+        #         self.rect_size,
+        #         self.rect_size,
+        #         alpha=0.5,
+        #         color="b",
+        #     )
+        #     self.ax2.add_patch(square)
 
         # TODO: Add bounding boxes
 

@@ -34,7 +34,7 @@ def main():
         try:
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
-                print(f"Tracks:", len(trackbuffer.tracks))
+                # print(f"Tracks:", len(trackbuffer.tracks))
                 # update the raw data scatter plot
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
@@ -49,8 +49,8 @@ def main():
                     else:
                         perform_tracking(effective_data, trackbuffer)
 
-                    # Update visualization graphs
-                    figure.update(trackbuffer)
+                # Update visualization graphs
+                figure.update(trackbuffer)
 
                 trackbuffer.dt_multiplier = 1
 
