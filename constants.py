@@ -39,6 +39,8 @@ TR_EXPERIMENT_ID = "2"
 TR_CLASS = "no_luggage"
 
 # EKF
+EKF_MAX_LIFETIME = 3
+
 EKF_DT = 0.05
 EKF_PHI_S = 0.1
 EKF_R_STD = 0.35

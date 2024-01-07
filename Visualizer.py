@@ -76,21 +76,25 @@ class Visualizer:
         z_all = np.array([])
         color_all = np.array([]).reshape(0, 3)
 
-        for track in trackbuffer.tracks:
-            coords = track.cluster.pointcloud
-            x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
+        for track in trackbuffer.effective_tracks:
+            # We want to visualize only new points.
+            if track.lifetime == 0:
+                coords = track.cluster.pointcloud
+                x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-            # Concatenate arrays directly
-            x_all = np.concatenate([x_all, x])
-            y_all = np.concatenate([y_all, y])
-            z_all = np.concatenate([z_all, z])
-            color_all = np.concatenate(
-                [color_all, np.repeat([track.color], len(x), axis=0)]
-            )
+                # Concatenate arrays directly
+                x_all = np.concatenate([x_all, x])
+                y_all = np.concatenate([y_all, y])
+                z_all = np.concatenate([z_all, z])
+                color_all = np.concatenate(
+                    [color_all, np.repeat([track.color], len(x), axis=0)]
+                )
 
         # Update 3d plot
         self.scatter3 = self.ax3.scatter(x_all, y_all, z_all, c=color_all, marker="o")
-        self.ax3.set_title(f"Track Number: {len(trackbuffer.tracks)}", loc="left")
+        self.ax3.set_title(
+            f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
+        )
 
         # Update the square in the 2D plot
         # if self.rect_2d:

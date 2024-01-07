@@ -3,6 +3,9 @@ import constants as const
 from filterpy.kalman import KalmanFilter
 from Localization import apply_DBscan, apply_constraints
 
+ACTIVE = 1
+INACTIVE = 0
+
 
 class KalmanState:
     def __init__(self, centroid):
@@ -48,7 +51,7 @@ class ClusterTrack:
         self.spread_est = np.array([0, 0, 0])
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
-        self.status = 1
+        self.status = ACTIVE
         self.lifetime = 0
         self.color = np.random.rand(
             3,
@@ -117,24 +120,33 @@ class ClusterTrack:
 class TrackBuffer:
     def __init__(self):
         self.tracks = []
-        # TODO: create a structure that erases the inactive tracks or just keeps the active ones.
+        self.effective_tracks = []
 
         # This field keeps track of the iterations that passed until we have valid measurements
         self.dt_multiplier = 1
 
+    def update_status(self):
+        for track in self.effective_tracks:
+            if track.lifetime > const.EKF_MAX_LIFETIME:
+                track.status = INACTIVE
+
+        # Update effective tracks
+        self.effective_tracks = [
+            track for track in self.tracks if track.status == ACTIVE
+        ]
+
     def has_active_tracks(self):
-        if len(self.tracks) != 0:
+        if len(self.effective_tracks) != 0:
             return True
         else:
             return False
 
     def _calc_dist_fun(self, full_set):
         dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
-
-        # simple_approach = np.empty((full_set.shape[0]))
         simple_approach = np.full(full_set.shape[0], None, dtype=object)
 
-        for j, track in enumerate(self.tracks):
+        for track in self.effective_tracks:
+            j = track.id
             # Find group residual covariance matrix
             # NOTE: Add D
             H_i = np.dot(const.EKF_H, track.state.inst.x).flatten()
@@ -170,34 +182,40 @@ class TrackBuffer:
             new_track.id = len(self.tracks)
 
             self.tracks.append(new_track)
+            self.effective_tracks.append(new_track)
 
     def predict_all(self):
-        for track in self.tracks:
+        for track in self.effective_tracks:
             track.predict_state(self.dt_multiplier)
 
     def update_all(self):
-        for track in self.tracks:
+        for track in self.effective_tracks:
             track.update_state()
 
     def associate_points_to_tracks(self, full_set):
         unassigned = []
-        clusters = [[] for _ in range(len(self.tracks))]
+        clusters = [[] for _ in range(len(self.effective_tracks))]
         simple_matrix = self._calc_dist_fun(full_set)
 
         for i, point in enumerate(full_set):
             if simple_matrix[i] is None:
                 unassigned.append(point)
             else:
-                clusters[simple_matrix[i]].append(point)
+                list_index = None
+                for index, track in enumerate(self.effective_tracks):
+                    if track.id == simple_matrix[i]:
+                        list_index = index
+                        break
+
+                clusters[list_index].append(point)
 
         # TODO: Check for minimum number of points before associating to a track
 
-        for j, track in enumerate(self.tracks):
-            # TODO: Check if the cluster[j] is empty or it does not pass the threshold of minimum points
-            # then increment the lifetime counter or perform state change or something.
+        for j, track in enumerate(self.effective_tracks):
             if len(clusters[j]) == 0:
                 track.lifetime += 1
             else:
+                track.lifetime = 0
                 track.associate_pointcloud(np.array(clusters[j]))
 
         return unassigned
@@ -209,7 +227,7 @@ def perform_tracking(pointcloud, trackbuffer: TrackBuffer):
 
     # Association Step
     unassigned = trackbuffer.associate_points_to_tracks(pointcloud)
-    # TODO: update tracks status or deem inactive.
+    trackbuffer.update_status()
 
     # Update Step
     trackbuffer.update_all()
