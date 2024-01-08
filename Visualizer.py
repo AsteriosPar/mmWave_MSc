@@ -55,6 +55,7 @@ class Visualizer:
             self.ax3.set_zlabel("Z")
             self.ax3.invert_yaxis()
             self.ax3.invert_xaxis()
+            self.bboxes = []
 
             rect_height = axis_3d[2]  # Set the height to cover the entire y-axis range
             vertices = [
@@ -105,14 +106,57 @@ class Visualizer:
         self.scatter._offsets3d = (x, y, z)
         plt.draw()
 
-    def update(self, trackbuffer: TrackBuffer):
-        if len(trackbuffer.tracks) != 0:
-            self.scatter3.remove()
+    def _draw_bounding_box(self, track):
+        # Create Bounding Boxes
+        c = np.array(
+            [
+                track.state.inst.x[0],
+                track.state.inst.x[1],
+                track.state.inst.x[2],
+            ]
+        ).flatten()
+        print(c)
+        vertices = np.array(
+            [
+                [-1, -1, -3],
+                [1, -1, -3],
+                [1, 1, -3],
+                [-1, 1, -3],
+                [-1, -1, 3],
+                [1, -1, 3],
+                [1, 1, 3],
+                [-1, 1, 3],
+            ]
+        )
+        vertices = vertices * const.DB_EPS + c
 
+        # Define the cube faces
+        faces = [
+            [vertices[j] for j in [0, 1, 2, 3]],
+            [vertices[j] for j in [4, 5, 6, 7]],
+            [vertices[j] for j in [0, 3, 7, 4]],
+            [vertices[j] for j in [1, 2, 6, 5]],
+            [vertices[j] for j in [0, 1, 5, 4]],
+            [vertices[j] for j in [2, 3, 7, 6]],
+        ]
+
+        cube = Poly3DCollection(faces, color=[track.color], alpha=0.5)
+        self.ax3.add_collection3d(cube)
+        return cube
+
+    def update(self, trackbuffer: TrackBuffer):
         x_all = np.array([])  # Initialize as empty NumPy arrays
         y_all = np.array([])
         z_all = np.array([])
         color_all = np.array([]).reshape(0, 3)
+
+        # Clear the scene before updating
+        if len(trackbuffer.tracks) != 0:
+            self.scatter3.remove()
+
+        for collection in self.bboxes:
+            collection.remove()
+        self.bboxes = []
 
         for track in trackbuffer.effective_tracks:
             # We want to visualize only new points.
@@ -120,13 +164,15 @@ class Visualizer:
                 coords = track.cluster.pointcloud
                 x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-                # Concatenate arrays directly
+                # Update pointclouds with different colors for different clusters
                 x_all = np.concatenate([x_all, x])
                 y_all = np.concatenate([y_all, y])
                 z_all = np.concatenate([z_all, z])
                 color_all = np.concatenate(
                     [color_all, np.repeat([track.color], len(x), axis=0)]
                 )
+
+                self.bboxes.append(self._draw_bounding_box(track))
 
         # Update 3d plot
         self.scatter3 = self.ax3.scatter(x_all, y_all, z_all, c=color_all, marker="o")
@@ -154,4 +200,4 @@ class Visualizer:
         # TODO: Add bounding boxes
 
         plt.draw()
-        plt.pause(0.1)  # Pause for a short time to allow for updating
+        plt.pause(0.05)  # Pause for a short time to allow for updating

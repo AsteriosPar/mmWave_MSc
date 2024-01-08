@@ -33,7 +33,7 @@ C_DOPPLER_THRES = 0
 
 # DBScan
 DB_Z_WEIGHT = 0.3
-DB_EPS = 0.1
+DB_EPS = 0.3
 DB_MIN_SAMPLES = 20
 
 # Enable actions
