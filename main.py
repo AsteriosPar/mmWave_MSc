@@ -8,9 +8,12 @@ from Visualizer import Visualizer
 from Localization import apply_DBscan, apply_constraints
 from Tracking import TrackBuffer, perform_tracking
 
+OFFLINE = 0
+ONLINE = 1
+
 
 def main():
-    if const.ENABLE_MODE == 0:
+    if const.ENABLE_MODE == OFFLINE:
         experiment_path = os.path.join(const.P_LOG_PATH, const.TR_EXPERIMENT_FILE)
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
@@ -49,7 +52,7 @@ def main():
     # Control loop
     while True:
         try:
-            if const.ENABLE_MODE == 0:
+            if const.ENABLE_MODE == OFFLINE:
                 # Offline mode
                 frame_count += 1
                 if frame_count in pointclouds:
@@ -63,6 +66,8 @@ def main():
                 dataOk, _, detObj = IWR1443.read()
 
             if dataOk:
+                figure.clear()
+
                 # update the raw data scatter plot
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
@@ -77,11 +82,11 @@ def main():
                     else:
                         perform_tracking(effective_data, trackbuffer)
 
-                # Update visualization graphs
-                figure.update(trackbuffer)
-
                 trackbuffer.dt_multiplier = 1
 
+                # Update visualization graphs
+                figure.update(trackbuffer)
+                figure.draw()
             else:
                 trackbuffer.dt_multiplier += 1
 
@@ -89,7 +94,7 @@ def main():
 
         except KeyboardInterrupt:
             plt.close()
-            if const.ENABLE_MODE == 1:
+            if const.ENABLE_MODE == ONLINE:
                 del IWR1443
             break
 

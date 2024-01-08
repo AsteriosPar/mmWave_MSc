@@ -4,6 +4,7 @@ import constants as const
 from constants import M_X, M_Y, M_Z
 from Tracking import TrackBuffer
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.patches import Patch
 
 
 class Visualizer:
@@ -31,6 +32,14 @@ class Visualizer:
         self.ax.set_zlabel("Z")
         self.ax.invert_yaxis()
         self.ax.invert_xaxis()
+        # Create proxy artists for the legend
+        legend_handles = [
+            Patch(color="orange", label="Predicted Track"),
+            Patch(color="green", label="Measured Track"),
+        ]
+
+        # Add legend
+        self.ax.legend(handles=legend_handles)
 
         # Plot window surface
         rect_height = axis_3d[2]
@@ -54,6 +63,20 @@ class Visualizer:
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
+    def clear(self):
+        # Remove pointcloud
+        if self.scatter is not None:
+            self.scatter.remove()
+
+        # Remove bounding boxes
+        for collection in self.dynamic_art:
+            collection.remove()
+        self.dynamic_art = []
+
+        # Remove screen fading
+        for patch in self.ax.patches:
+            patch.remove()
+
     def _calc_square(self, x, y, z):
         y_dist = y - M_Y
         x_dist = x - M_X
@@ -72,13 +95,13 @@ class Visualizer:
         self.scatter_raw._offsets3d = (x, y, z)
         plt.draw()
 
-    def _draw_bounding_box(self, track):
+    def _draw_bounding_box(self, x, color="gray", fill=0):
         # Create Bounding Boxes
         c = np.array(
             [
-                track.state.inst.x[0],
-                track.state.inst.x[1],
-                track.state.inst.x[2],
+                x[0],
+                x[1],
+                x[2],
             ]
         ).flatten()
         vertices = np.array(
@@ -105,7 +128,7 @@ class Visualizer:
             [vertices[j] for j in [2, 3, 7, 6]],
         ]
 
-        cube = Poly3DCollection(faces, color=[track.color], alpha=0.5)
+        cube = Poly3DCollection(faces, color=[color], alpha=fill)
         self.ax.add_collection3d(cube)
         return cube
 
@@ -137,20 +160,6 @@ class Visualizer:
         z_all = np.array([])
         color_all = np.array([]).reshape(0, 3)
 
-        # Clear the scene before updating
-        if len(trackbuffer.tracks) != 0:
-            self.scatter.remove()
-
-        # Remove bounding boxes
-        for collection in self.dynamic_art:
-            collection.remove()
-
-        # Remove screen fading
-        for patch in self.ax.patches:
-            patch.remove()
-
-        self.dynamic_art = []
-
         for track in trackbuffer.effective_tracks:
             # We want to visualize only new points.
             if track.lifetime == 0:
@@ -165,7 +174,17 @@ class Visualizer:
                     [color_all, np.repeat([track.color], len(x), axis=0)]
                 )
 
-                self.dynamic_art.append(self._draw_bounding_box(track))
+                self.dynamic_art.append(
+                    self._draw_bounding_box(
+                        track.state.inst.x, color=track.color, fill=0.5
+                    )
+                )
+                self.dynamic_art.append(
+                    self._draw_bounding_box(track.predict_x, color="red")
+                )
+                self.dynamic_art.append(
+                    self._draw_bounding_box(track.cluster.centroid, color="green")
+                )
                 self.dynamic_art.append(self._draw_screen_fade(track))
 
         # Update 3d plot
@@ -174,5 +193,6 @@ class Visualizer:
             f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
         )
 
+    def draw(self):
         plt.draw()
         plt.pause(0.05)  # Pause for a short time to allow for updating

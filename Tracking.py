@@ -56,11 +56,14 @@ class ClusterTrack:
         self.color = np.random.rand(
             3,
         )
+        # NOTE: For visualizing purposes only
+        self.predict_x = self.state.inst.x
 
     def predict_state(self, dt_multiplier):
         self.state.inst.predict(
             F=const.EKF_F(dt_multiplier), Q=const.EKF_Q_DISCR(dt_multiplier)
         )
+        self.predict_x = self.state.inst.x
 
     def _estimate_point_num(self, enable=False):
         if enable:
