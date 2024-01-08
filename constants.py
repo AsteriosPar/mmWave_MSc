@@ -22,6 +22,10 @@ M_X = 0.6
 M_Y = -1
 M_Z = 0.6
 
+# Visualization Parameters
+V_3D_AXIS = [2.0, 4.0, 2.0]
+V_SCREEN_FADE_SIZE: float = 0.2
+
 # Frames and Buffering
 FB_FRAMES_SKIP = 5
 FB_BUFFER_SIZE = 100
