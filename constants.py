@@ -53,42 +53,6 @@ EKF_DT = 0.05
 EKF_R_STD = 0.1
 EKF_Q_STD = 0.3
 
-
-# State Transition Matrix
-def EKF_F(mult):
-    return np.array(
-        [
-            [1, 0, 0, EKF_DT * mult, 0, 0],
-            [0, 1, 0, 0, EKF_DT * mult, 0],
-            [0, 0, 1, 0, 0, EKF_DT * mult],
-            [0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 1],
-        ]
-    )
-
-
-# Measurement Matrix
-EKF_H = np.array(
-    [
-        [1, 0, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-    ]
-)
-
-
-def EKF_Q_DISCR(mult):
-    return block_diag(
-        Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
-        Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
-    )
-
-
-# q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
-# EKF_Q_CONT = block_diag(q2, q2)
-
-
 # point num estimation params
 EKF_A_N = 0.9
 EKF_EST_POINTNUM = 100
@@ -96,27 +60,87 @@ EKF_SPREAD_LIM = [2, 2, 4]  # Revise the numbers
 EKF_A_SPR = 0.9  # Revise
 
 # Gate parameter
-EKF_G = 5
+EKF_G = 3
 
 
-# def process_noise_covariance_matrix(dt):
-#     return np.array(
-#         [
-#             [(1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0, 0],
-#             [0, (1 / 4) * dt**4, 0, 0, (1 / 2) * dt**3, 0],
-#             [
-#                 0,
-#                 0,
-#                 (1 / 4) * dt**4,
-#                 0,
-#                 0,
-#                 (1 / 2) * dt**3,
-#             ],
-#             [(1 / 2) * dt**3, 0, 0, dt**2, 0, 0],
-#             [0, (1 / 2) * dt**3, 0, 0, dt**2, 0],
-#             [0, 0, (1 / 2) * dt**3, 0, 0, dt**2],
-#         ]
-#     )
+# Motion Models
+class CONST_ACC_MODEL:
+    EKF_DIM = [9, 3]
+
+    # Measurement Matrix
+    EKF_H = np.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0],
+        ]
+    )
+
+    def STATE_VEC(init):
+        return [init[0], init[1], init[2], 0, 0, 0, 0, 0, 0]
+
+    # State Transition Matrix
+    def EKF_F(mult):
+        return np.array(
+            [
+                [1, 0, 0, (EKF_DT * mult), 0, 0, (0.5 * (EKF_DT * mult) ** 2), 0, 0],
+                [0, 1, 0, 0, (EKF_DT * mult), 0, 0, (0.5 * (EKF_DT * mult) ** 2), 0],
+                [0, 0, 1, 0, 0, (EKF_DT * mult), 0, 0, (0.5 * (EKF_DT * mult) ** 2)],
+                [0, 0, 0, 1, 0, 0, (EKF_DT * mult), 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, (EKF_DT * mult), 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, (EKF_DT * mult)],
+                [0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
+
+    def EKF_Q_DISCR(mult):
+        return block_diag(
+            Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+        )
+
+
+class CONST_VEL_MODEL:
+    EKF_DIM = [6, 3]
+    # Measurement Matrix
+    EKF_H = np.array(
+        [
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0],
+        ]
+    )
+
+    def STATE_VEC(init):
+        return [init[0], init[1], init[2], 0, 0, 0]
+
+    # State Transition Matrix
+    def EKF_F(mult):
+        return np.array(
+            [
+                [1, 0, 0, EKF_DT * mult, 0, 0],
+                [0, 1, 0, 0, EKF_DT * mult, 0],
+                [0, 0, 1, 0, 0, EKF_DT * mult],
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
+            ]
+        )
+
+    def EKF_Q_DISCR(mult):
+        return block_diag(
+            Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=EKF_DT * mult, var=EKF_Q_STD),
+        )
+
+
+MOTION_MODEL = CONST_VEL_MODEL
+
+# q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
+# EKF_Q_CONT = block_diag(q2, q2)
 
 
 # def jacobian_matrix(state_vec):

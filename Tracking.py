@@ -10,21 +10,22 @@ INACTIVE = 0
 
 class KalmanState:
     def __init__(self, centroid):
-        # My state variables are: [x y z x' y' z']
-        # My input variables are: [x y z]
         # No control function
-        self.inst = KalmanFilter(dim_x=6, dim_z=3)
+        self.inst = KalmanFilter(
+            dim_x=const.MOTION_MODEL.EKF_DIM[0],
+            dim_z=const.MOTION_MODEL.EKF_DIM[1],
+        )
 
-        self.inst.F = const.EKF_F(1)
-        self.inst.H = const.EKF_H
+        self.inst.F = const.MOTION_MODEL.EKF_F(1)
+        self.inst.H = const.MOTION_MODEL.EKF_H
 
         # We assume independent noise in the x,y,z variables of equal standard deviations.
-        self.inst.Q = const.EKF_Q_DISCR(1)
+        self.inst.Q = const.MOTION_MODEL.EKF_Q_DISCR(1)
         self.inst.R = np.eye(3) * const.EKF_R_STD**2
 
         # For initial values
-        self.inst.x = np.array([[centroid[0], centroid[1], centroid[2], 0, 0, 0]]).T
-        self.inst.P = np.eye(6) * 10.0
+        self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
+        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 10.0
 
 
 class PointCluster:
@@ -62,7 +63,8 @@ class ClusterTrack:
 
     def predict_state(self, dt_multiplier):
         self.state.inst.predict(
-            F=const.EKF_F(dt_multiplier), Q=const.EKF_Q_DISCR(dt_multiplier)
+            F=const.MOTION_MODEL.EKF_F(dt_multiplier),
+            Q=const.MOTION_MODEL.EKF_Q_DISCR(dt_multiplier),
         )
         self.predict_x = self.state.inst.x
 
@@ -154,7 +156,7 @@ class TrackBuffer:
             j = track.id
             # Find group residual covariance matrix
             # NOTE: Add D
-            H_i = np.dot(const.EKF_H, track.state.inst.x).flatten()
+            H_i = np.dot(const.MOTION_MODEL.EKF_H, track.state.inst.x).flatten()
 
             # TODO: This is wrong. Fix it
             # C_g_i = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
