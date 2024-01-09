@@ -116,7 +116,7 @@ class Visualizer:
                 [-1, 1, 3],
             ]
         )
-        vertices = vertices * const.DB_EPS + c
+        vertices = vertices * (const.V_BBOX_HEIGHT / 6) + c
 
         # Define the cube faces
         faces = [

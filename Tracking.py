@@ -1,6 +1,7 @@
 import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
+from typing import List
 from Localization import apply_DBscan, apply_constraints
 
 ACTIVE = 1
@@ -23,7 +24,7 @@ class KalmanState:
 
         # For initial values
         self.inst.x = np.array([[centroid[0], centroid[1], centroid[2], 0, 0, 0]]).T
-        self.inst.P = np.eye(6) * 100.0
+        self.inst.P = np.eye(6) * 10.0
 
 
 class PointCluster:
@@ -117,13 +118,14 @@ class ClusterTrack:
         return self.get_Rm() / self.cluster.point_num
 
     def update_state(self):
-        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        # self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        self.state.inst.update(np.array(self.cluster.centroid))
 
 
 class TrackBuffer:
     def __init__(self):
-        self.tracks = []
-        self.effective_tracks = []
+        self.tracks: List[ClusterTrack] = []
+        self.effective_tracks: List[ClusterTrack] = []
 
         # This field keeps track of the iterations that passed until we have valid measurements
         self.dt_multiplier = 1
@@ -144,7 +146,7 @@ class TrackBuffer:
         else:
             return False
 
-    def _calc_dist_fun(self, full_set):
+    def _calc_dist_fun(self, full_set: np.array):
         dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
         simple_approach = np.full(full_set.shape[0], None, dtype=object)
 
@@ -195,7 +197,7 @@ class TrackBuffer:
         for track in self.effective_tracks:
             track.update_state()
 
-    def associate_points_to_tracks(self, full_set):
+    def associate_points_to_tracks(self, full_set: np.array):
         unassigned = []
         clusters = [[] for _ in range(len(self.effective_tracks))]
         simple_matrix = self._calc_dist_fun(full_set)

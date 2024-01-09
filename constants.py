@@ -25,6 +25,7 @@ M_Z = 0.6
 # Visualization Parameters
 V_3D_AXIS = [2.0, 4.0, 2.0]
 V_SCREEN_FADE_SIZE: float = 0.2
+V_BBOX_HEIGHT = 1.8
 
 # Frames and Buffering
 FB_FRAMES_SKIP = 5
@@ -37,8 +38,8 @@ C_DOPPLER_THRES = 0
 
 # DBScan
 DB_Z_WEIGHT = 0.3
-DB_EPS = 0.3
-DB_MIN_SAMPLES = 20
+DB_EPS = 0.05
+DB_MIN_SAMPLES = 25
 
 # Enable actions
 ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
@@ -46,12 +47,11 @@ ENABLE_2D_VIEW = False
 ENABLE_3D_VIEW = True
 
 # EKF
-EKF_MAX_LIFETIME = 3
+EKF_MAX_LIFETIME = 6
 
 EKF_DT = 0.05
-EKF_PHI_S = 0.1
-EKF_R_STD = 0.35
-EKF_Q_STD = 0.04
+EKF_R_STD = 0.1
+EKF_Q_STD = 0.3
 
 
 # State Transition Matrix
@@ -94,7 +94,9 @@ EKF_A_N = 0.9
 EKF_EST_POINTNUM = 100
 EKF_SPREAD_LIM = [2, 2, 4]  # Revise the numbers
 EKF_A_SPR = 0.9  # Revise
-EKF_G = 3
+
+# Gate parameter
+EKF_G = 5
 
 
 # def process_noise_covariance_matrix(dt):
