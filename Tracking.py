@@ -25,7 +25,7 @@ class KalmanState:
 
         # For initial values
         self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
-        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 10.0
+        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 0.5
 
 
 class PointCluster:
@@ -49,12 +49,14 @@ class ClusterTrack:
     def __init__(self, cluster: PointCluster):
         self.id = None
         # Number of previously estimated points
-        self.N_est = None
+        self.N_est = 0
         self.spread_est = np.zeros(const.MOTION_MODEL.EKF_DIM[1])
+        self.group_disp_est = np.eye(const.MOTION_MODEL.EKF_DIM[1]) * 0.001
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
         self.lifetime = 0
+        self.undetected_dt = 0
         self.color = np.random.rand(
             3,
         )
@@ -106,22 +108,44 @@ class ClusterTrack:
                     m
                 ] + const.EKF_A_SPR * spread
 
+    def _estimate_group_disp_matrix(self):
+        a = self.cluster.point_num / self.N_est
+        self.group_disp_est = (1 - a) * self.group_disp_est + a * self.get_D()
+
     def associate_pointcloud(self, pointcloud: np.array):
         self.cluster = PointCluster(pointcloud)
         self._estimate_point_num()
         self._estimate_measurement_spread()
+        self._estimate_group_disp_matrix()
 
     def get_Rm(self):
         rm = np.diag(((self.spread_est / 2) ** 2))
-        # print(f"Rm dim:", rm.shape)
         return rm
 
     def get_Rc(self):
-        return self.get_Rm() / self.cluster.point_num
+        N = self.cluster.point_num
+        N_est = self.N_est
+        return (self.get_Rm() / N) + (
+            (N_est - N) / ((N_est - 1) * N)
+        ) * self.group_disp_est
+
+    def get_D(self):
+        dimension = const.MOTION_MODEL.EKF_DIM[1]
+        pointcloud = self.cluster.pointcloud
+        centroid = self.cluster.centroid
+        disp = np.zeros((dimension, dimension), dtype="float")
+
+        for i in range(dimension):
+            for j in range(dimension):
+                disp[i, j] = np.mean(
+                    (pointcloud[:, i] - centroid[i]) * (pointcloud[:, j] - centroid[j])
+                )
+
+        return disp
 
     def update_state(self):
-        # self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
-        self.state.inst.update(np.array(self.cluster.centroid))
+        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        # self.state.inst.update(np.array(self.cluster.centroid))
 
 
 class TrackBuffer:
@@ -155,21 +179,20 @@ class TrackBuffer:
         for track in self.effective_tracks:
             j = track.id
             # Find group residual covariance matrix
-            # NOTE: Add D
             H_i = np.dot(const.MOTION_MODEL.EKF_H, track.state.inst.x).flatten()
 
-            # TODO: This is wrong. Fix it
-            # C_g_i = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
-            C_g_i = track.get_Rm()
+            # TODO: This is probably wrong. Fix it
+            # C_g_j = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
+            C_g_j = track.state.inst.P[:6, :6] + track.get_Rm() + track.group_disp_est
 
             for i, point in enumerate(full_set):
                 # Find innovation for each measurement
                 y_ij = np.array(point) - H_i
 
                 # Find distance function (d^2)
-                # TODO: This is also wrong
-                # dist_matrix[i][j] = np.dot(np.dot(y_ij.T, np.linalg.inv(C_g_i)), y_ij)
-                dist_matrix[i][j] = np.dot(np.dot(y_ij.T, C_g_i), y_ij)
+                dist_matrix[i][j] = np.log(np.abs(np.linalg.det(C_g_j))) + np.dot(
+                    np.dot(y_ij.T, np.linalg.inv(C_g_j)), y_ij
+                )
 
                 # Perform G threshold check
                 if dist_matrix[i][j] < const.EKF_G:
@@ -193,7 +216,7 @@ class TrackBuffer:
 
     def predict_all(self):
         for track in self.effective_tracks:
-            track.predict_state(self.dt_multiplier)
+            track.predict_state(track.undetected_dt + self.dt_multiplier)
 
     def update_all(self):
         for track in self.effective_tracks:
@@ -221,8 +244,10 @@ class TrackBuffer:
         for j, track in enumerate(self.effective_tracks):
             if len(clusters[j]) == 0:
                 track.lifetime += 1
+                track.undetected_dt += self.dt_multiplier
             else:
                 track.lifetime = 0
+                track.undetected_dt = 0
                 track.associate_pointcloud(np.array(clusters[j]))
 
         return unassigned
