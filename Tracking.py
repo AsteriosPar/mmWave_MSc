@@ -1,6 +1,7 @@
 import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
+from typing import List
 from Localization import apply_DBscan, apply_constraints
 
 ACTIVE = 1
@@ -9,21 +10,22 @@ INACTIVE = 0
 
 class KalmanState:
     def __init__(self, centroid):
-        # My state variables are: [x y z x' y' z']
-        # My input variables are: [x y z]
         # No control function
-        self.inst = KalmanFilter(dim_x=6, dim_z=3)
+        self.inst = KalmanFilter(
+            dim_x=const.MOTION_MODEL.EKF_DIM[0],
+            dim_z=const.MOTION_MODEL.EKF_DIM[1],
+        )
 
-        self.inst.F = const.EKF_F(1)
-        self.inst.H = const.EKF_H
+        self.inst.F = const.MOTION_MODEL.EKF_F(1)
+        self.inst.H = const.MOTION_MODEL.EKF_H
 
         # We assume independent noise in the x,y,z variables of equal standard deviations.
-        self.inst.Q = const.EKF_Q_DISCR(1)
+        self.inst.Q = const.MOTION_MODEL.EKF_Q_DISCR(1)
         self.inst.R = np.eye(3) * const.EKF_R_STD**2
 
         # For initial values
-        self.inst.x = np.array([[centroid[0], centroid[1], centroid[2], 0, 0, 0]]).T
-        self.inst.P = np.eye(6) * 100.0
+        self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
+        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 10.0
 
 
 class PointCluster:
@@ -56,11 +58,15 @@ class ClusterTrack:
         self.color = np.random.rand(
             3,
         )
+        # NOTE: For visualizing purposes only
+        self.predict_x = self.state.inst.x
 
     def predict_state(self, dt_multiplier):
         self.state.inst.predict(
-            F=const.EKF_F(dt_multiplier), Q=const.EKF_Q_DISCR(dt_multiplier)
+            F=const.MOTION_MODEL.EKF_F(dt_multiplier),
+            Q=const.MOTION_MODEL.EKF_Q_DISCR(dt_multiplier),
         )
+        self.predict_x = self.state.inst.x
 
     def _estimate_point_num(self, enable=False):
         if enable:
@@ -114,13 +120,14 @@ class ClusterTrack:
         return self.get_Rm() / self.cluster.point_num
 
     def update_state(self):
-        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        # self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        self.state.inst.update(np.array(self.cluster.centroid))
 
 
 class TrackBuffer:
     def __init__(self):
-        self.tracks = []
-        self.effective_tracks = []
+        self.tracks: List[ClusterTrack] = []
+        self.effective_tracks: List[ClusterTrack] = []
 
         # This field keeps track of the iterations that passed until we have valid measurements
         self.dt_multiplier = 1
@@ -141,7 +148,7 @@ class TrackBuffer:
         else:
             return False
 
-    def _calc_dist_fun(self, full_set):
+    def _calc_dist_fun(self, full_set: np.array):
         dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
         simple_approach = np.full(full_set.shape[0], None, dtype=object)
 
@@ -149,7 +156,7 @@ class TrackBuffer:
             j = track.id
             # Find group residual covariance matrix
             # NOTE: Add D
-            H_i = np.dot(const.EKF_H, track.state.inst.x).flatten()
+            H_i = np.dot(const.MOTION_MODEL.EKF_H, track.state.inst.x).flatten()
 
             # TODO: This is wrong. Fix it
             # C_g_i = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
@@ -192,7 +199,7 @@ class TrackBuffer:
         for track in self.effective_tracks:
             track.update_state()
 
-    def associate_points_to_tracks(self, full_set):
+    def associate_points_to_tracks(self, full_set: np.array):
         unassigned = []
         clusters = [[] for _ in range(len(self.effective_tracks))]
         simple_matrix = self._calc_dist_fun(full_set)
