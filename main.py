@@ -23,11 +23,11 @@ def main():
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 framenum = int(row[0])
-                coords = [float(row[1]), float(row[2]), float(row[3])]
+                coords = [float(row[1]), float(row[2]), float(row[3]), float(row[4])]
 
                 if framenum in pointclouds:
                     # Append coordinates to the existing lists
-                    for key, value in zip(["x", "y", "z"], coords):
+                    for key, value in zip(["x", "y", "z", "doppler"], coords):
                         pointclouds[framenum][key].append(value)
                 else:
                     # If not, create a new dictionary for the framenum
@@ -35,6 +35,7 @@ def main():
                         "x": [coords[0]],
                         "y": [coords[1]],
                         "z": [coords[2]],
+                        "doppler": [coords[3]],
                     }
 
         frame_count = 0

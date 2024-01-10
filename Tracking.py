@@ -21,7 +21,7 @@ class KalmanState:
 
         # We assume independent noise in the x,y,z variables of equal standard deviations.
         self.inst.Q = const.MOTION_MODEL.EKF_Q_DISCR(1)
-        self.inst.R = np.eye(3) * const.EKF_R_STD**2
+        self.inst.R = np.eye(const.MOTION_MODEL.EKF_DIM[1]) * const.EKF_R_STD**2
 
         # For initial values
         self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
@@ -50,7 +50,7 @@ class ClusterTrack:
         self.id = None
         # Number of previously estimated points
         self.N_est = None
-        self.spread_est = np.array([0, 0, 0])
+        self.spread_est = np.zeros(const.MOTION_MODEL.EKF_DIM[1])
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE

@@ -65,7 +65,7 @@ EKF_G = 3
 
 # Motion Models
 class CONST_ACC_MODEL:
-    EKF_DIM = [9, 3]
+    EKF_DIM = [9, 6]
 
     # Measurement Matrix
     EKF_H = np.array(
@@ -73,11 +73,14 @@ class CONST_ACC_MODEL:
             [1, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0, 0],
         ]
     )
 
     def STATE_VEC(init):
-        return [init[0], init[1], init[2], 0, 0, 0, 0, 0, 0]
+        return [init[0], init[1], init[2], init[3], init[4], init[5], 0, 0, 0]
 
     # State Transition Matrix
     def EKF_F(mult):
@@ -106,16 +109,10 @@ class CONST_ACC_MODEL:
 class CONST_VEL_MODEL:
     EKF_DIM = [6, 3]
     # Measurement Matrix
-    EKF_H = np.array(
-        [
-            [1, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0],
-        ]
-    )
+    EKF_H = np.eye(6)
 
     def STATE_VEC(init):
-        return [init[0], init[1], init[2], 0, 0, 0]
+        return [init[0], init[1], init[2], init[3], init[4], init[5]]
 
     # State Transition Matrix
     def EKF_F(mult):
@@ -137,7 +134,7 @@ class CONST_VEL_MODEL:
         )
 
 
-MOTION_MODEL = CONST_VEL_MODEL
+MOTION_MODEL = CONST_ACC_MODEL
 
 # q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
 # EKF_Q_CONT = block_diag(q2, q2)
