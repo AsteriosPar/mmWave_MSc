@@ -137,7 +137,7 @@ class Visualizer:
             [
                 track.state.inst.x[0],
                 track.state.inst.x[1],
-                track.state.inst.x[2],
+                track.state.inst.x[2] + const.S_HEIGHT,
             ]
         ).flatten()
         center = self._calc_square(coords[0], coords[1], coords[2])
@@ -185,7 +185,7 @@ class Visualizer:
                 self.dynamic_art.append(
                     self._draw_bounding_box(track.cluster.centroid, color="green")
                 )
-                self.dynamic_art.append(self._draw_screen_fade(track))
+            self.dynamic_art.append(self._draw_screen_fade(track))
 
         # Update 3d plot
         self.scatter = self.ax.scatter(x_all, y_all, z_all, c=color_all, marker="o")
