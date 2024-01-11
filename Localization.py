@@ -1,5 +1,6 @@
 from sklearn.cluster import DBSCAN
 import constants as const
+import math
 import numpy as np
 
 
@@ -39,25 +40,39 @@ def apply_DBscan(data):
 
 
 def apply_constraints(detObj):
-    data_coords = np.column_stack((detObj["x"], detObj["y"], detObj["z"]))
-    # data_doppler = np.array(detObj["doppler"])
-    # data_range = np.array(detObj["range"])
+    input_data = np.column_stack(
+        (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
+    )
 
-    ef_coords = np.empty((0, 3), dtype="int16")
-    # ef_doppler = np.empty((0,), dtype="int16")
+    ef_data = np.empty((0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float")
 
-    # Parse every data point in the detObj
-    for index in range(len(data_coords)):
-        # Remove data points out of field of interest (range (and azimuth but not implemented yet))
-        # Remove Static Clutter
-        # if (
-        #     data_range[index] > const.C_RANGE_MIN
-        #     and data_range[index] < const.C_RANGE_MAX
-        #     # and data_doppler[index] > const.C_DOPPLER_THRES
-        # ):
-        ef_coords = np.append(ef_coords, [data_coords[index, :]], axis=0)
-        # ef_doppler = np.append(ef_doppler, data_doppler[index])
+    for index in range(len(input_data)):
+        # if input_data[index][3] > const.C_DOPPLER_THRES:
+        # Transform the radial velocity into Cartesian
+        r = math.sqrt(
+            input_data[index, 0] ** 2
+            + input_data[index, 1] ** 2
+            + input_data[index, 2] ** 2
+        )
+        vx = input_data[index, 3] * input_data[index, 0] / r
+        vy = input_data[index, 3] * input_data[index, 1] / r
+        vz = input_data[index, 3] * input_data[index, 2] / r
 
-    # ef_coords has a shape of (M, 3)
-    # return (ef_doppler, ef_coords)
-    return ef_coords
+        ef_data = np.append(
+            ef_data,
+            [
+                np.array(
+                    [
+                        input_data[index, 0],
+                        input_data[index, 1],
+                        input_data[index, 2],
+                        vx,
+                        vy,
+                        vz,
+                    ]
+                )
+            ],
+            axis=0,
+        )
+
+    return ef_data
