@@ -2,7 +2,7 @@ import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
 from typing import List
-from Localization import apply_DBscan, apply_constraints
+from Localization import apply_DBscan
 
 ACTIVE = 1
 INACTIVE = 0
@@ -25,7 +25,7 @@ class KalmanState:
 
         # For initial values
         self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
-        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 0.5
+        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 0.001
 
 
 class PointCluster:
@@ -86,12 +86,6 @@ class ClusterTrack:
             spread = self.cluster.max_vals[m] - self.cluster.min_vals[m]
 
             # Unbiased spread estimation
-            # This line modifies the calculated spread to obtain an "unbiased spread estimation." It involves scaling the
-            # initial spread by a factor based on the number of "good" points in the cluster (self.cluster.point_num). The formula
-            # used is typically derived from statistical considerations to provide an unbiased estimate of the population
-            # variance. (self.cluster.point_num + 1) / (self.cluster.point_num - 1) is a common correction factor used in statistics.
-            # This factor adjusts the spread to account for the fact that when estimating population variance from a sample,
-            # the sample variance tends to be biased low. The formula aims to correct this bias.
             if self.cluster.point_num != 1:
                 spread = (
                     spread * (self.cluster.point_num + 1) / (self.cluster.point_num - 1)

@@ -53,7 +53,7 @@ class Visualizer:
         self.ax.add_collection3d(rectangle)
 
         # Plot monitor position
-        center = (M_X, M_Y, M_Z)
+        center = (const.M_X, const.M_Y, const.M_Z)
         radius = 0.1
         phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
         x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
@@ -196,3 +196,24 @@ class Visualizer:
     def draw(self):
         plt.draw()
         plt.pause(0.05)  # Pause for a short time to allow for updating
+
+
+class Screen:
+    def __init__(self):
+        self.monitor_coords = [const.M_X, const.M_Y, const.M_Z]
+        self.rect_size = const.V_SCREEN_FADE_SIZE
+
+    def _calc_square(self, x, y, z):
+        y_dist = y - self.monitor_coords[1]
+        x_dist = x - self.monitor_coords[0]
+        z_dist = z - self.monitor_coords[2]
+
+        x1 = -self.monitor_coords[1] / (y_dist / x_dist)
+        z1 = -self.monitor_coords[1] / (y_dist / z_dist)
+
+        screen_x = x1 + self.monitor_coords[0]
+        screen_z = z1 + self.monitor_coords[2]
+
+        return (screen_x, screen_z)
+
+    # Add a function

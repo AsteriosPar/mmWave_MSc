@@ -14,7 +14,8 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Training
-TR_EXPERIMENT_FILE = "person2_dop.csv"
+TR_EXPERIMENT_FILE_READ = "person3_dop.csv"
+TR_EXPERIMENT_FILE_WRITE = "person1.csv"
 TR_CLASS = "no_luggage"
 
 # Monitor Coordinates
@@ -31,7 +32,7 @@ V_SCREEN_FADE_SIZE: float = 0.2
 V_BBOX_HEIGHT = 1.8
 
 # Frames and Buffering
-FB_FRAMES_SKIP = 5
+FB_FRAMES_SKIP = 0
 FB_BUFFER_SIZE = 100
 
 # Scene constraints and Clutter Removal
@@ -41,8 +42,8 @@ C_DOPPLER_THRES = 0
 
 # DBScan
 DB_Z_WEIGHT = 0.3
-DB_EPS = 0.05
-DB_MIN_SAMPLES = 25
+DB_EPS = 0.1
+DB_MIN_SAMPLES = 18
 
 # Enable actions
 ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
@@ -50,11 +51,11 @@ ENABLE_2D_VIEW = False
 ENABLE_3D_VIEW = True
 
 # EKF
-EKF_MAX_LIFETIME = 8
+EKF_MAX_LIFETIME = 10
 
 EKF_DT = 0.05
-EKF_R_STD = 0.1
-EKF_Q_STD = 0.5
+EKF_R_STD = 0.01
+EKF_Q_STD = 1
 
 # point num estimation params
 EKF_A_N = 0.9
@@ -63,7 +64,7 @@ EKF_SPREAD_LIM = [1.2, 1.2, 4, 1.4, 1.4, 1.2]  # Revise the numbers
 EKF_A_SPR = 0.9  # Revise
 
 # Gate parameter
-EKF_G = 4.5
+EKF_G = 2.4
 
 
 # Motion Models
