@@ -2,16 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import constants as const
 from constants import M_X, M_Y, M_Z
-from Tracking import TrackBuffer
+from Tracking import TrackBuffer, ClusterTrack
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
 
 
 class Visualizer:
     def __init__(self):
-        axis_3d = const.V_3D_AXIS
         self.dynamic_art = []
         fig = plt.figure()
+        axis_3d = const.V_3D_AXIS
 
         # Create subplot of raw pointcloud
         self.ax_raw = fig.add_subplot(121, projection="3d")
@@ -24,7 +24,8 @@ class Visualizer:
         # Create subplot of
         self.ax = fig.add_subplot(122, projection="3d")
         self.scatter = self.ax.scatter([], [], [])
-        self.ax.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
+        self.ax.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 6)
+
         self.ax.set_ylim(-1, axis_3d[1])
         self.ax.set_zlim(0, axis_3d[2])
         self.ax.set_xlabel("X")
@@ -198,12 +199,15 @@ class Visualizer:
         plt.pause(0.05)  # Pause for a short time to allow for updating
 
 
-class Screen:
+class ScreenAdapter:
     def __init__(self):
         self.monitor_coords = [const.M_X, const.M_Y, const.M_Z]
+        self.sensor_coords = [0, 0, const.S_HEIGHT]
         self.rect_size = const.V_SCREEN_FADE_SIZE
 
-    def _calc_square(self, x, y, z):
+    # def _translate_coords(self):
+
+    def _fade_center(self, x, y, z):
         y_dist = y - self.monitor_coords[1]
         x_dist = x - self.monitor_coords[0]
         z_dist = z - self.monitor_coords[2]
@@ -216,4 +220,22 @@ class Screen:
 
         return (screen_x, screen_z)
 
-    # Add a function
+    def fade_shape(self, track: ClusterTrack):
+        coords = np.array(
+            [
+                track.state.inst.x[0],
+                track.state.inst.x[1],
+                track.state.inst.x[2] + const.S_HEIGHT,
+            ]
+        ).flatten()
+        center = self._fade_center(coords[0], coords[1], coords[2])
+        vertices = [
+            (center[0] - self.rect_size / 2, 0, center[1] - self.rect_size / 2),
+            (center[0] + self.rect_size / 2, 0, center[1] - self.rect_size / 2),
+            (center[0] + self.rect_size / 2, 0, center[1] + self.rect_size / 2),
+            (center[0] - self.rect_size / 2, 0, center[1] + self.rect_size / 2),
+        ]
+
+        # Create a Poly3DCollection
+        rectangle = Poly3DCollection([vertices], facecolors="black", alpha=1)
+        return rectangle
