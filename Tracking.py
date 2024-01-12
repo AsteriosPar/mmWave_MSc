@@ -139,7 +139,6 @@ class ClusterTrack:
 
     def update_state(self):
         self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
-        # self.state.inst.update(np.array(self.cluster.centroid))
 
 
 class TrackBuffer:

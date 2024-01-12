@@ -5,7 +5,10 @@ import numpy as np
 
 
 def _altered_EuclideanDist(p1, p2):
-    return (
+    # NOTE: The z-axis is let a bit looser since the sillouette of a person is tall and thin.
+    # Also, the further away from the sensor the more sparse the points, so we need a weighing factor
+    weight = 1 - ((p1[1] + p2[1]) / 2) * const.DB_RANGE_WEIGHT
+    return weight * (
         (p1[0] - p2[0]) ** 2
         + (p1[1] - p2[1]) ** 2
         + const.DB_Z_WEIGHT * ((p1[2] - p2[2]) ** 2)

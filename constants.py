@@ -23,8 +23,9 @@ M_X = 0.6
 M_Y = -1
 M_Z = 0.6
 
-# Sensor Height
+# Sensor
 S_HEIGHT = 0.8
+S_TILT = 10  # degrees (-180, 180)
 
 # Visualization Parameters
 V_3D_AXIS = [2.0, 6.0, 2.0]
@@ -35,20 +36,11 @@ V_BBOX_HEIGHT = 1.8
 FB_FRAMES_SKIP = 0
 FB_BUFFER_SIZE = 100
 
-# Scene constraints and Clutter Removal
-C_RANGE_MIN = 0
-C_RANGE_MAX = 12
-C_DOPPLER_THRES = 0
-
 # DBScan
 DB_Z_WEIGHT = 0.3
+DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.1
 DB_MIN_SAMPLES = 18
-
-# Enable actions
-ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
-ENABLE_2D_VIEW = False
-ENABLE_3D_VIEW = True
 
 # EKF
 EKF_MAX_LIFETIME = 10
@@ -139,6 +131,8 @@ class CONST_VEL_MODEL:
 
 
 MOTION_MODEL = CONST_ACC_MODEL
+ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
+
 
 # q2 = Q_continuous_white_noise(dim=3, dt=EKF_DT, var=EKF_Q_STD)
 # EKF_Q_CONT = block_diag(q2, q2)
