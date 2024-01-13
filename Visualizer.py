@@ -34,7 +34,7 @@ class Visualizer:
         self.ax.invert_xaxis()
         # Create proxy artists for the legend
         legend_handles = [
-            Patch(color="orange", label="Predicted Track"),
+            Patch(color="red", label="Predicted Track"),
             Patch(color="green", label="Measured Track"),
         ]
 

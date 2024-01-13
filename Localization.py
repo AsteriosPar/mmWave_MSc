@@ -50,32 +50,47 @@ def apply_constraints(detObj):
     ef_data = np.empty((0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float")
 
     for index in range(len(input_data)):
-        # if input_data[index][3] > const.C_DOPPLER_THRES:
-        # Transform the radial velocity into Cartesian
-        r = math.sqrt(
-            input_data[index, 0] ** 2
-            + input_data[index, 1] ** 2
-            + input_data[index, 2] ** 2
-        )
-        vx = input_data[index, 3] * input_data[index, 0] / r
-        vy = input_data[index, 3] * input_data[index, 1] / r
-        vz = input_data[index, 3] * input_data[index, 2] / r
+        if input_data[index][3] > 0:
+            # Transform the radial velocity into Cartesian
+            r = math.sqrt(
+                input_data[index, 0] ** 2
+                + input_data[index, 1] ** 2
+                + input_data[index, 2] ** 2
+            )
+            vx = input_data[index, 3] * input_data[index, 0] / r
+            vy = input_data[index, 3] * input_data[index, 1] / r
+            vz = input_data[index, 3] * input_data[index, 2] / r
 
-        ef_data = np.append(
-            ef_data,
-            [
-                np.array(
-                    [
-                        input_data[index, 0],
-                        input_data[index, 1],
-                        input_data[index, 2],
-                        vx,
-                        vy,
-                        vz,
-                    ]
-                )
-            ],
-            axis=0,
-        )
+            ef_data = np.append(
+                ef_data,
+                [
+                    np.array(
+                        [
+                            input_data[index, 0],
+                            input_data[index, 1],
+                            input_data[index, 2],
+                            vx,
+                            vy,
+                            vz,
+                        ]
+                    )
+                ],
+                axis=0,
+            )
 
     return ef_data
+
+
+def batch_frames(batch: np.array, new_data: np.array, counter):
+    is_ready = False
+    batch = np.append(batch, new_data, axis=0)
+
+    if counter < (const.FB_FRAMES_BATCH - 1):
+        counter += 1
+        # print("entered")
+    else:
+        counter = 0
+        is_ready = True
+        # print("completed")
+
+    return batch, counter, is_ready

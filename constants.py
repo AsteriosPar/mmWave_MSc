@@ -14,8 +14,8 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Training
-TR_EXPERIMENT_FILE_READ = "person3_dop.csv"
-TR_EXPERIMENT_FILE_WRITE = "person1.csv"
+TR_EXPERIMENT_FILE_READ = "person2_dop.csv"
+TR_EXPERIMENT_FILE_WRITE = "person1_mount.csv"
 TR_CLASS = "no_luggage"
 
 # Monitor Coordinates
@@ -34,20 +34,21 @@ V_BBOX_HEIGHT = 1.8
 
 # Frames and Buffering
 FB_FRAMES_SKIP = 0
+FB_FRAMES_BATCH = 2
 FB_BUFFER_SIZE = 100
 
 # DBScan
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
-DB_EPS = 0.1
-DB_MIN_SAMPLES = 18
+DB_EPS = 0.3
+DB_MIN_SAMPLES = 20
 
 # EKF
 EKF_MAX_LIFETIME = 10
 
 EKF_DT = 0.05
 EKF_R_STD = 0.01
-EKF_Q_STD = 1
+EKF_Q_STD = 0.5
 
 # point num estimation params
 EKF_A_N = 0.9
@@ -56,7 +57,7 @@ EKF_SPREAD_LIM = [1.2, 1.2, 4, 1.4, 1.4, 1.2]  # Revise the numbers
 EKF_A_SPR = 0.9  # Revise
 
 # Gate parameter
-EKF_G = 2.4
+EKF_G = 4
 
 
 # Motion Models
@@ -103,7 +104,7 @@ class CONST_ACC_MODEL:
 
 
 class CONST_VEL_MODEL:
-    EKF_DIM = [6, 3]
+    EKF_DIM = [6, 6]
     # Measurement Matrix
     EKF_H = np.eye(6)
 
