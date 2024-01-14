@@ -2,11 +2,12 @@ import time
 import os
 import csv
 import matplotlib.pyplot as plt
+import numpy as np
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
-from Localization import apply_DBscan, apply_constraints
-from Tracking import TrackBuffer, perform_tracking
+from Localization import apply_DBscan, apply_constraints, perform_tracking, BatchedData
+from Tracking import TrackBuffer
 
 OFFLINE = 0
 ONLINE = 1
@@ -14,7 +15,7 @@ ONLINE = 1
 
 def main():
     if const.ENABLE_MODE == OFFLINE:
-        experiment_path = os.path.join(const.P_LOG_PATH, const.TR_EXPERIMENT_FILE_READ)
+        experiment_path = os.path.join(const.P_LOG_PATH, const.P_EXPERIMENT_FILE_READ)
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
@@ -49,6 +50,7 @@ def main():
 
     figure = Visualizer()
     trackbuffer = TrackBuffer()
+    batch = BatchedData()
 
     # Control loop
     while True:
@@ -81,12 +83,13 @@ def main():
                         trackbuffer.add_tracks(clusters)
 
                     else:
-                        perform_tracking(effective_data, trackbuffer)
+                        perform_tracking(effective_data, trackbuffer, batch)
 
-                trackbuffer.dt_multiplier = 1
+                    trackbuffer.dt_multiplier = 1
 
                 # Update visualization graphs
                 figure.update(trackbuffer)
+
                 figure.draw()
             else:
                 trackbuffer.dt_multiplier += 1

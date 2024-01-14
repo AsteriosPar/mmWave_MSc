@@ -2,7 +2,6 @@ import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
 from typing import List
-from Localization import apply_DBscan
 
 ACTIVE = 1
 INACTIVE = 0
@@ -12,20 +11,20 @@ class KalmanState:
     def __init__(self, centroid):
         # No control function
         self.inst = KalmanFilter(
-            dim_x=const.MOTION_MODEL.EKF_DIM[0],
-            dim_z=const.MOTION_MODEL.EKF_DIM[1],
+            dim_x=const.MOTION_MODEL.KF_DIM[0],
+            dim_z=const.MOTION_MODEL.KF_DIM[1],
         )
 
-        self.inst.F = const.MOTION_MODEL.EKF_F(1)
-        self.inst.H = const.MOTION_MODEL.EKF_H
+        self.inst.F = const.MOTION_MODEL.KF_F(1)
+        self.inst.H = const.MOTION_MODEL.KF_H
 
         # We assume independent noise in the x,y,z variables of equal standard deviations.
-        self.inst.Q = const.MOTION_MODEL.EKF_Q_DISCR(1)
-        self.inst.R = np.eye(const.MOTION_MODEL.EKF_DIM[1]) * const.EKF_R_STD**2
+        self.inst.Q = const.MOTION_MODEL.KF_Q_DISCR(1)
+        self.inst.R = np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_R_STD**2
 
         # For initial values
         self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
-        self.inst.P = np.eye(const.MOTION_MODEL.EKF_DIM[0]) * 0.001
+        self.inst.P = np.eye(const.MOTION_MODEL.KF_DIM[0]) * 0.001
 
 
 class PointCluster:
@@ -50,8 +49,8 @@ class ClusterTrack:
         self.id = None
         # Number of previously estimated points
         self.N_est = 0
-        self.spread_est = np.zeros(const.MOTION_MODEL.EKF_DIM[1])
-        self.group_disp_est = np.eye(const.MOTION_MODEL.EKF_DIM[1]) * 0.001
+        self.spread_est = np.zeros(const.MOTION_MODEL.KF_DIM[1])
+        self.group_disp_est = np.eye(const.MOTION_MODEL.KF_DIM[1]) * 0.001
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
@@ -65,8 +64,8 @@ class ClusterTrack:
 
     def predict_state(self, dt_multiplier):
         self.state.inst.predict(
-            F=const.MOTION_MODEL.EKF_F(dt_multiplier),
-            Q=const.MOTION_MODEL.EKF_Q_DISCR(dt_multiplier),
+            F=const.MOTION_MODEL.KF_F(dt_multiplier),
+            Q=const.MOTION_MODEL.KF_Q_DISCR(dt_multiplier),
         )
         self.predict_x = self.state.inst.x
 
@@ -76,10 +75,10 @@ class ClusterTrack:
                 self.N_est = self.cluster.point_num
             else:
                 self.N_est = (
-                    1 - const.EKF_A_N
-                ) * self.N_est + const.EKF_A_N * self.cluster.point_num
+                    1 - const.KF_A_N
+                ) * self.N_est + const.KF_A_N * self.cluster.point_num
         else:
-            self.N_est = max(const.EKF_EST_POINTNUM, self.cluster.point_num)
+            self.N_est = max(const.KF_EST_POINTNUM, self.cluster.point_num)
 
     def _estimate_measurement_spread(self):
         for m in range(len(self.cluster.min_vals)):
@@ -92,15 +91,15 @@ class ClusterTrack:
                 )
 
             # Ensure the computed spread estimation is between 1x and 2x of configured limits
-            spread = min(2 * const.EKF_SPREAD_LIM[m], spread)
-            spread = max(const.EKF_SPREAD_LIM[m], spread)
+            spread = min(2 * const.KF_SPREAD_LIM[m], spread)
+            spread = max(const.KF_SPREAD_LIM[m], spread)
 
             if spread > self.spread_est[m]:
                 self.spread_est[m] = spread
             else:
-                self.spread_est[m] = (1.0 - const.EKF_A_SPR) * self.spread_est[
+                self.spread_est[m] = (1.0 - const.KF_A_SPR) * self.spread_est[
                     m
-                ] + const.EKF_A_SPR * spread
+                ] + const.KF_A_SPR * spread
 
     def _estimate_group_disp_matrix(self):
         a = self.cluster.point_num / self.N_est
@@ -124,7 +123,7 @@ class ClusterTrack:
         ) * self.group_disp_est
 
     def get_D(self):
-        dimension = const.MOTION_MODEL.EKF_DIM[1]
+        dimension = const.MOTION_MODEL.KF_DIM[1]
         pointcloud = self.cluster.pointcloud
         centroid = self.cluster.centroid
         disp = np.zeros((dimension, dimension), dtype="float")
@@ -151,7 +150,7 @@ class TrackBuffer:
 
     def update_status(self):
         for track in self.effective_tracks:
-            if track.lifetime > const.EKF_MAX_LIFETIME:
+            if track.lifetime > const.TR_LIFETIME:
                 track.status = INACTIVE
 
         # Update effective tracks
@@ -172,7 +171,7 @@ class TrackBuffer:
         for track in self.effective_tracks:
             j = track.id
             # Find group residual covariance matrix
-            H_i = np.dot(const.MOTION_MODEL.EKF_H, track.state.inst.x).flatten()
+            H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.inst.x).flatten()
 
             # TODO: This is probably wrong. Fix it
             # C_g_j = np.dot(np.dot(H_i, track.state.inst.P), H_i.T) + track.get_Rm
@@ -188,7 +187,7 @@ class TrackBuffer:
                 )
 
                 # Perform G threshold check
-                if dist_matrix[i][j] < const.EKF_G:
+                if dist_matrix[i][j] < const.TR_GATE:
                     # Just choose the closest mahalanobis distance
                     if simple_approach[i] is None:
                         simple_approach[i] = j
@@ -216,13 +215,13 @@ class TrackBuffer:
             track.update_state()
 
     def associate_points_to_tracks(self, full_set: np.array):
-        unassigned = []
+        unassigned = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
         clusters = [[] for _ in range(len(self.effective_tracks))]
         simple_matrix = self._calc_dist_fun(full_set)
 
         for i, point in enumerate(full_set):
             if simple_matrix[i] is None:
-                unassigned.append(point)
+                unassigned = np.append(unassigned, [point], axis=0)
             else:
                 list_index = None
                 for index, track in enumerate(self.effective_tracks):
@@ -244,23 +243,3 @@ class TrackBuffer:
                 track.associate_pointcloud(np.array(clusters[j]))
 
         return unassigned
-
-
-def perform_tracking(pointcloud, trackbuffer: TrackBuffer):
-    # Prediction Step
-    trackbuffer.predict_all()
-
-    # Association Step
-    unassigned = trackbuffer.associate_points_to_tracks(pointcloud)
-    trackbuffer.update_status()
-
-    # Update Step
-    trackbuffer.update_all()
-
-    new_clusters = []
-    # Clustering of the remainder step
-    if len(unassigned) != 0:
-        new_clusters = apply_DBscan(unassigned)
-
-    # Create new track for every new cluster
-    trackbuffer.add_tracks(new_clusters)
