@@ -2,7 +2,6 @@ import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
 from typing import List
-from Localization import apply_DBscan
 
 ACTIVE = 1
 INACTIVE = 0
@@ -216,13 +215,13 @@ class TrackBuffer:
             track.update_state()
 
     def associate_points_to_tracks(self, full_set: np.array):
-        unassigned = []
+        unassigned = np.empty((0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float")
         clusters = [[] for _ in range(len(self.effective_tracks))]
         simple_matrix = self._calc_dist_fun(full_set)
 
         for i, point in enumerate(full_set):
             if simple_matrix[i] is None:
-                unassigned.append(point)
+                unassigned = np.append(unassigned, [point], axis=0)
             else:
                 list_index = None
                 for index, track in enumerate(self.effective_tracks):
@@ -244,23 +243,3 @@ class TrackBuffer:
                 track.associate_pointcloud(np.array(clusters[j]))
 
         return unassigned
-
-
-def perform_tracking(pointcloud, trackbuffer: TrackBuffer):
-    # Prediction Step
-    trackbuffer.predict_all()
-
-    # Association Step
-    unassigned = trackbuffer.associate_points_to_tracks(pointcloud)
-    trackbuffer.update_status()
-
-    # Update Step
-    trackbuffer.update_all()
-
-    new_clusters = []
-    # Clustering of the remainder step
-    if len(unassigned) != 0:
-        new_clusters = apply_DBscan(unassigned)
-
-    # Create new track for every new cluster
-    trackbuffer.add_tracks(new_clusters)

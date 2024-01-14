@@ -40,15 +40,15 @@ FB_BUFFER_SIZE = 100
 # DBScan
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
-DB_EPS = 0.3
+DB_EPS = 0.5
 DB_MIN_SAMPLES = 20
 
 # EKF
 EKF_MAX_LIFETIME = 10
 
 EKF_DT = 0.05
-EKF_R_STD = 0.01
-EKF_Q_STD = 0.5
+EKF_R_STD = 100
+EKF_Q_STD = 0.01
 
 # point num estimation params
 EKF_A_N = 0.9
@@ -57,7 +57,7 @@ EKF_SPREAD_LIM = [1.2, 1.2, 4, 1.4, 1.4, 1.2]  # Revise the numbers
 EKF_A_SPR = 0.9  # Revise
 
 # Gate parameter
-EKF_G = 4
+EKF_G = 3
 
 
 # Motion Models

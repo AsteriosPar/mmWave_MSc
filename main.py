@@ -6,8 +6,8 @@ import numpy as np
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
-from Localization import apply_DBscan, apply_constraints, batch_frames
-from Tracking import TrackBuffer, perform_tracking
+from Localization import apply_DBscan, apply_constraints, perform_tracking, BatchedData
+from Tracking import TrackBuffer
 
 OFFLINE = 0
 ONLINE = 1
@@ -50,8 +50,7 @@ def main():
 
     figure = Visualizer()
     trackbuffer = TrackBuffer()
-    effective_data = np.empty((0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float")
-    batch_counter = 0
+    batch = BatchedData()
 
     # Control loop
     while True:
@@ -76,24 +75,17 @@ def main():
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
                 # Apply scene constraints and static clutter removal
-                filtered_data = apply_constraints(detObj)
+                effective_data = apply_constraints(detObj)
 
-                effective_data, batch_counter, is_ready = batch_frames(
-                    effective_data, filtered_data, batch_counter
-                )
-
-                if is_ready and effective_data.shape[0] != 0:
+                if effective_data.shape[0] != 0:
                     if not trackbuffer.has_active_tracks():
                         clusters = apply_DBscan(effective_data)
                         trackbuffer.add_tracks(clusters)
 
                     else:
-                        perform_tracking(effective_data, trackbuffer)
+                        perform_tracking(effective_data, trackbuffer, batch)
 
                     trackbuffer.dt_multiplier = 1
-                    effective_data = np.empty(
-                        (0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float"
-                    )
 
                 # Update visualization graphs
                 figure.update(trackbuffer)
