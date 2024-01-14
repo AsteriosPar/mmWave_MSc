@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person2_dop.csv"
+P_EXPERIMENT_FILE_READ = "person1_mount.csv"
 P_EXPERIMENT_FILE_WRITE = "person1_mount.csv"
 P_CLASS = "no_luggage"
 
@@ -23,8 +23,8 @@ M_Y = -1
 M_Z = 0.6
 
 # Sensor
-S_HEIGHT = 0.8
-S_TILT = 10  # degrees (-180, 180)
+S_HEIGHT = 0
+S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
 V_3D_AXIS = [2.0, 6.0, 2.0]

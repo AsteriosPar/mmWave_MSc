@@ -24,11 +24,6 @@ def _altered_EuclideanDist(p1, p2):
         + (p1[1] - p2[1]) ** 2
         + const.DB_Z_WEIGHT * ((p1[2] - p2[2]) ** 2)
     )
-    # return (
-    #     (p1[0] - p2[0]) ** 2
-    #     + (p1[1] - p2[1]) ** 2
-    #     + const.DB_Z_WEIGHT * ((p1[2] - p2[2]) ** 2)
-    # )
 
 
 def apply_DBscan(data):
@@ -58,6 +53,42 @@ def apply_DBscan(data):
     return clusters
 
 
+def transform(input):
+    # Translation Matrix (T)
+    T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, const.S_HEIGHT], [0, 0, 0, 1]])
+
+    # Rotation Matrix (R_inv)
+    ang_rad = np.radians(const.S_TILT)
+    R_inv = np.array(
+        [
+            [1, 0, 0, 0],
+            [0, np.cos(ang_rad), -np.sin(ang_rad), 0],
+            [0, np.sin(ang_rad), np.cos(ang_rad), 0],
+            [0, 0, 0, 1],
+        ]
+    )
+
+    coordinates = np.concatenate((input[:3], [1]))
+    velocities = np.concatenate((input[3:], [0]))
+
+    transformed_coords = np.dot(T, np.dot(R_inv, coordinates))
+    transformed_velocities = np.dot(T, np.dot(R_inv, velocities))
+
+    x_transformed, y_transformed, z_transformed, _ = transformed_coords
+    vx_transformed, vy_transformed, vz_transformed, _ = transformed_velocities
+
+    return np.array(
+        [
+            x_transformed,
+            y_transformed,
+            z_transformed,
+            vx_transformed,
+            vy_transformed,
+            vz_transformed,
+        ]
+    )
+
+
 def apply_constraints(detObj):
     input_data = np.column_stack(
         (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
@@ -77,20 +108,23 @@ def apply_constraints(detObj):
         vy = input_data[index, 3] * input_data[index, 1] / r
         vz = input_data[index, 3] * input_data[index, 2] / r
 
+        # Translate points to new coordinate system
+        transformed_point = transform(
+            np.array(
+                [
+                    input_data[index, 0],
+                    input_data[index, 1],
+                    input_data[index, 2],
+                    vx,
+                    vy,
+                    vz,
+                ]
+            )
+        )
+
         ef_data = np.append(
             ef_data,
-            [
-                np.array(
-                    [
-                        input_data[index, 0],
-                        input_data[index, 1],
-                        input_data[index, 2],
-                        vx,
-                        vy,
-                        vz,
-                    ]
-                )
-            ],
+            [transformed_point],
             axis=0,
         )
 
