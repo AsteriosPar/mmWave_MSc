@@ -34,7 +34,7 @@ def data_log_mode():
     # Create the logging file target
     data_path = os.path.join(
         const.P_LOG_PATH,
-        const.TR_EXPERIMENT_FILE_WRITE,
+        const.P_EXPERIMENT_FILE_WRITE,
     )
     if os.path.exists(data_path):
         if query_yes_no():

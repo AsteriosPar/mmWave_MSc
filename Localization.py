@@ -8,15 +8,11 @@ from Tracking import TrackBuffer
 class BatchedData:
     def __init__(self):
         self.counter = 0
-        self.effective_data = np.empty(
-            (0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float"
-        )
+        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
     def empty(self):
         self.counter = 0
-        self.effective_data = np.empty(
-            (0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float"
-        )
+        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
 
 def _altered_EuclideanDist(p1, p2):
@@ -67,7 +63,7 @@ def apply_constraints(detObj):
         (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
     )
 
-    ef_data = np.empty((0, const.MOTION_MODEL.EKF_DIM[1]), dtype="float")
+    ef_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
     for index in range(len(input_data)):
         # if input_data[index][3] > 0:
@@ -103,7 +99,6 @@ def apply_constraints(detObj):
 
 def batch_frames(batch: BatchedData, new_data: np.array):
     is_ready = False
-    print(new_data.shape)
     batch.effective_data = np.append(batch.effective_data, new_data, axis=0)
 
     if batch.counter < (const.FB_FRAMES_BATCH - 1):
@@ -111,7 +106,6 @@ def batch_frames(batch: BatchedData, new_data: np.array):
     else:
         batch.counter = 0
         is_ready = True
-        print("ready!")
 
     return is_ready
 

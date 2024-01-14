@@ -15,7 +15,7 @@ ONLINE = 1
 
 def main():
     if const.ENABLE_MODE == OFFLINE:
-        experiment_path = os.path.join(const.P_LOG_PATH, const.TR_EXPERIMENT_FILE_READ)
+        experiment_path = os.path.join(const.P_LOG_PATH, const.P_EXPERIMENT_FILE_READ)
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
