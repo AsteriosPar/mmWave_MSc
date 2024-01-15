@@ -6,7 +6,13 @@ import numpy as np
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
-from Localization import apply_DBscan, apply_constraints, perform_tracking, BatchedData
+from Localization import (
+    apply_DBscan,
+    apply_constraints,
+    perform_tracking,
+    BatchedData,
+    batch_frames,
+)
 from Tracking import TrackBuffer
 
 OFFLINE = 0
@@ -79,8 +85,12 @@ def main():
 
                 if effective_data.shape[0] != 0:
                     if not trackbuffer.has_active_tracks():
-                        clusters = apply_DBscan(effective_data)
-                        trackbuffer.add_tracks(clusters)
+                        is_ready = batch_frames(batch, effective_data)
+                        if is_ready:
+                            new_clusters = apply_DBscan(batch.effective_data)
+                            # clusters = apply_DBscan(effective_data)
+                            trackbuffer.add_tracks(new_clusters)
+                            batch.empty()
 
                     else:
                         perform_tracking(effective_data, trackbuffer, batch)

@@ -98,6 +98,9 @@ def apply_constraints(detObj):
 
     for index in range(len(input_data)):
         # if input_data[index][3] > 0:
+        # z-axis limits
+        # designated area limits
+
         # Transform the radial velocity into Cartesian
         r = math.sqrt(
             input_data[index, 0] ** 2

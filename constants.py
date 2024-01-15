@@ -11,8 +11,8 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person1_mount.csv"
-P_EXPERIMENT_FILE_WRITE = "person1_mount.csv"
+P_EXPERIMENT_FILE_READ = "person2_mount.csv"
+P_EXPERIMENT_FILE_WRITE = "person2_mount.csv"
 P_CLASS = "no_luggage"
 
 
@@ -23,11 +23,11 @@ M_Y = -1
 M_Z = 0.6
 
 # Sensor
-S_HEIGHT = 0
+S_HEIGHT = 1.7
 S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
-V_3D_AXIS = [2.0, 6.0, 2.0]
+V_3D_AXIS = [3.0, 6.0, 2.0]
 V_SCREEN_FADE_SIZE: float = 0.2
 V_BBOX_HEIGHT = 1.8
 
@@ -46,7 +46,7 @@ DB_EPS = 0.3
 DB_MIN_SAMPLES = 20
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 2
+FB_FRAMES_BATCH = 3
 
 
 ###### Tracking and Kalman ######

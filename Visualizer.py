@@ -101,23 +101,23 @@ class Visualizer:
             [
                 x[0],
                 x[1],
-                x[2],
+                x[2] * 0.0,
             ]
         ).flatten()
         vertices = np.array(
             [
-                [-1, -1, -3],
-                [1, -1, -3],
-                [1, 1, -3],
-                [-1, 1, -3],
-                [-1, -1, 3],
-                [1, -1, 3],
-                [1, 1, 3],
-                [-1, 1, 3],
+                [-0.3, -0.3, 0],
+                [0.3, -0.3, 0],
+                [0.3, 0.3, 0],
+                [-0.3, 0.3, 0],
+                [-0.3, -0.3, 1.8],
+                [0.3, -0.3, 1.8],
+                [0.3, 0.3, 1.8],
+                [-0.3, 0.3, 1.8],
             ]
         )
-        vertices = vertices * (const.V_BBOX_HEIGHT / 6) + c
-
+        vertices = vertices + c
+        # vertices = vertices * (const.V_BBOX_HEIGHT / 6) + c
         # Define the cube faces
         faces = [
             [vertices[j] for j in [0, 1, 2, 3]],
@@ -137,7 +137,7 @@ class Visualizer:
             [
                 track.state.inst.x[0],
                 track.state.inst.x[1],
-                track.state.inst.x[2] + const.S_HEIGHT,
+                track.state.inst.x[2],
             ]
         ).flatten()
         center = self._calc_square(coords[0], coords[1], coords[2])
