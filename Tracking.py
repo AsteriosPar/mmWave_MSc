@@ -65,7 +65,7 @@ class ClusterTrack:
         )
         self.predict_x = self.state.inst.x
 
-    def _estimate_point_num(self, enable=False):
+    def _estimate_point_num(self, enable=True):
         if enable:
             if self.cluster.point_num > self.N_est:
                 self.N_est = self.cluster.point_num
@@ -274,6 +274,7 @@ class TrackBuffer:
                 # inner cluster separation
                 new_inner_clusters.append(track.seek_inner_clusters())
 
+        # In case inner clusters are found, create new tracks for them
         for inner_cluster in new_inner_clusters:
             self.add_tracks(inner_cluster)
 
