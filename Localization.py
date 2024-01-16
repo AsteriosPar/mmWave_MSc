@@ -2,17 +2,6 @@ from sklearn.cluster import DBSCAN
 import constants as const
 import math
 import numpy as np
-from Tracking import TrackBuffer
-
-
-class BatchedData:
-    def __init__(self):
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
-
-    def empty(self):
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
 
 def _altered_EuclideanDist(p1, p2):
@@ -132,38 +121,3 @@ def apply_constraints(detObj):
         )
 
     return ef_data
-
-
-def batch_frames(batch: BatchedData, new_data: np.array):
-    is_ready = False
-    batch.effective_data = np.append(batch.effective_data, new_data, axis=0)
-
-    if batch.counter < (const.FB_FRAMES_BATCH - 1):
-        batch.counter += 1
-    else:
-        batch.counter = 0
-        is_ready = True
-
-    return is_ready
-
-
-def perform_tracking(pointcloud, trackbuffer: TrackBuffer, batch: BatchedData):
-    # Prediction Step
-    trackbuffer.predict_all()
-
-    # Association Step
-    unassigned = trackbuffer.associate_points_to_tracks(pointcloud)
-    trackbuffer.update_status()
-
-    # Update Step
-    trackbuffer.update_all()
-
-    # Clustering of the remainder points Step
-    new_clusters = []
-    is_ready = batch_frames(batch, unassigned)
-    if is_ready and len(batch.effective_data) != 0:
-        new_clusters = apply_DBscan(batch.effective_data)
-        batch.empty()
-
-        # Create new track for every new cluster
-        trackbuffer.add_tracks(new_clusters)

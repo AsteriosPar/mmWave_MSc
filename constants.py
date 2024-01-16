@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person2_mount.csv"
+P_EXPERIMENT_FILE_READ = "person4_dop.csv"
 P_EXPERIMENT_FILE_WRITE = "person2_mount.csv"
 P_CLASS = "no_luggage"
 
@@ -43,7 +43,7 @@ FB_DT = 0.1
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.3
-DB_MIN_SAMPLES = 20
+DB_MIN_SAMPLES = 15
 
 # Number of frames per Batch
 FB_FRAMES_BATCH = 3
@@ -51,7 +51,8 @@ FB_FRAMES_BATCH = 3
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_LIFETIME = 10
+TR_LIFETIME = 8
+TR_LIFETIME_DET = 3  # Lifetime of tracks in state DETECTED
 TR_GATE = 3
 
 # Kalman
