@@ -27,7 +27,7 @@ S_HEIGHT = 1.7
 S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
-V_3D_AXIS = [4.0, 4.0, 2.0]
+V_3D_AXIS = [3.0, 6.0, 2.0]
 V_SCREEN_FADE_SIZE: float = 0.2
 V_BBOX_HEIGHT = 1.8
 
