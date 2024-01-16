@@ -9,11 +9,13 @@ from Visualizer import Visualizer
 from Localization import (
     apply_DBscan,
     apply_constraints,
+)
+from Tracking import (
+    TrackBuffer,
     perform_tracking,
     BatchedData,
     batch_frames,
 )
-from Tracking import TrackBuffer
 
 OFFLINE = 0
 ONLINE = 1
