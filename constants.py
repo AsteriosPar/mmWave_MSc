@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person2_mount.csv"
+P_EXPERIMENT_FILE_READ = "person4_dop.csv"
 P_EXPERIMENT_FILE_WRITE = "person2_mount.csv"
 P_CLASS = "no_luggage"
 
@@ -59,6 +59,7 @@ KF_R_STD = 100
 KF_Q_STD = 0.01
 
 # Kalman estimation parameters
+KF_ENABLE_EST = True
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
 KF_SPREAD_LIM = [0.7, 0.7, 2, 1.4, 1.4, 1.2]  # Revise

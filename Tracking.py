@@ -69,8 +69,8 @@ class ClusterTrack:
         )
         self.predict_x = self.state.inst.x
 
-    def _estimate_point_num(self, enable=False):
-        if enable:
+    def _estimate_point_num(self):
+        if const.KF_ENABLE_EST:
             if self.cluster.point_num > self.N_est:
                 self.N_est = self.cluster.point_num
             else:
