@@ -4,7 +4,7 @@ import math
 import numpy as np
 
 
-def _altered_EuclideanDist(p1, p2):
+def altered_EuclideanDist(p1, p2):
     # NOTE: The z-axis is let a bit looser since the sillouette of a person is tall and thin.
     # Also, the further away from the sensor the more sparse the points, so we need a weighing factor
     weight = 1 - ((p1[1] + p2[1]) / 2) * const.DB_RANGE_WEIGHT
@@ -15,34 +15,30 @@ def _altered_EuclideanDist(p1, p2):
     )
 
 
-def apply_DBscan(data):
+def apply_DBscan(pointcloud):
     dbscan = DBSCAN(
         eps=const.DB_EPS,
         min_samples=const.DB_MIN_SAMPLES,
-        metric=_altered_EuclideanDist,
+        metric=altered_EuclideanDist,
     )
 
-    # Clustering labels
-    labels = dbscan.fit_predict(data)
+    labels = dbscan.fit_predict(pointcloud)
 
     # label of -1 means noice so we exclude it
-    unique_labels = set(labels) - {-1}
+    filtered_labels = set(labels) - {-1}
 
-    # Create a dictionary to store points for each cluster
-    clustered_points = {label: [] for label in unique_labels}
-
-    # Iterate through data and assign points to clusters
+    # Assign points to clusters
+    clustered_points = {label: [] for label in filtered_labels}
     for i, label in enumerate(labels):
         if label != -1:
-            clustered_points[label].append(data[i])
+            clustered_points[label].append(pointcloud[i])
 
-    # Convert the dictionary to a list of clustered points
+    # Return a list of clustered pointclouds
     clusters = list(clustered_points.values())
-
     return clusters
 
 
-def transform(input):
+def point_transform_to_standard_axis(input):
     # Translation Matrix (T)
     T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, const.S_HEIGHT], [0, 0, 0, 1]])
 
@@ -59,26 +55,23 @@ def transform(input):
 
     coordinates = np.concatenate((input[:3], [1]))
     velocities = np.concatenate((input[3:], [0]))
-
     transformed_coords = np.dot(T, np.dot(R_inv, coordinates))
     transformed_velocities = np.dot(T, np.dot(R_inv, velocities))
 
-    x_transformed, y_transformed, z_transformed, _ = transformed_coords
-    vx_transformed, vy_transformed, vz_transformed, _ = transformed_velocities
-
     return np.array(
         [
-            x_transformed,
-            y_transformed,
-            z_transformed,
-            vx_transformed,
-            vy_transformed,
-            vz_transformed,
+            transformed_coords[0],
+            transformed_coords[1],
+            transformed_coords[2],
+            transformed_velocities[0],
+            transformed_velocities[1],
+            transformed_velocities[2],
         ]
     )
 
 
-def apply_constraints(detObj):
+def preprocess_data(detObj):
+    """this function takes the pointcloud from the sensor, filters it, converts radial to cartesian velocity and transforms it to the standard vertical-horizontal plane axis system"""
     input_data = np.column_stack(
         (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
     )
@@ -101,7 +94,7 @@ def apply_constraints(detObj):
         vz = input_data[index, 3] * input_data[index, 2] / r
 
         # Translate points to new coordinate system
-        transformed_point = transform(
+        transformed_point = point_transform_to_standard_axis(
             np.array(
                 [
                     input_data[index, 0],

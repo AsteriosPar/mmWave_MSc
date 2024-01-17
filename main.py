@@ -2,19 +2,16 @@ import time
 import os
 import csv
 import matplotlib.pyplot as plt
-import numpy as np
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer
-from Localization import (
+from utils import (
     apply_DBscan,
-    apply_constraints,
+    preprocess_data,
 )
 from Tracking import (
     TrackBuffer,
-    perform_tracking,
     BatchedData,
-    batch_frames,
 )
 
 OFFLINE = 0
@@ -83,19 +80,20 @@ def main():
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
                 # Apply scene constraints and static clutter removal
-                effective_data = apply_constraints(detObj)
+                effective_data = preprocess_data(detObj)
 
                 if effective_data.shape[0] != 0:
                     if not trackbuffer.has_active_tracks():
-                        is_ready = batch_frames(batch, effective_data)
-                        if is_ready:
+                        # Add frames to a batch until it reaches the maximum frames required
+                        batch.add_frame(effective_data)
+                        if batch.is_complete():
                             new_clusters = apply_DBscan(batch.effective_data)
                             # clusters = apply_DBscan(effective_data)
                             trackbuffer.add_tracks(new_clusters)
                             batch.empty()
 
                     else:
-                        perform_tracking(effective_data, trackbuffer, batch)
+                        trackbuffer.track(effective_data, batch)
 
                     trackbuffer.dt_multiplier = 1
 

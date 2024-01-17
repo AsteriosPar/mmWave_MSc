@@ -1,12 +1,29 @@
 import numpy as np
 import constants as const
 from filterpy.kalman import KalmanFilter
-from Localization import apply_DBscan
+from utils import apply_DBscan
 from typing import List
 
 DETECTED = 2
 ACTIVE = 1
 INACTIVE = 0
+
+
+class BatchedData:
+    def __init__(self):
+        self.counter = 0
+        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+
+    def empty(self):
+        self.counter = 0
+        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+
+    def add_frame(self, new_data: np.array):
+        self.effective_data = np.append(self.effective_data, new_data, axis=0)
+        self.counter += 1
+
+    def is_complete(self):
+        return self.counter >= (const.FB_FRAMES_BATCH - 1)
 
 
 class KalmanState:
@@ -23,7 +40,7 @@ class KalmanState:
         self.inst.R = np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_R_STD**2
         # For initial values
         self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
-        self.inst.P = np.eye(const.MOTION_MODEL.KF_DIM[0]) * 0.001
+        self.inst.P = np.eye(const.MOTION_MODEL.KF_DIM[0]) * const.KF_P_INIT
 
 
 class PointCluster:
@@ -45,7 +62,9 @@ class ClusterTrack:
         self.id = None
         self.N_est = 0
         self.spread_est = np.zeros(const.MOTION_MODEL.KF_DIM[1])
-        self.group_disp_est = np.eye(const.MOTION_MODEL.KF_DIM[1]) * 0.001
+        self.group_disp_est = (
+            np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_GROUP_DISP_EST_INIT
+        )
         self.cluster = cluster
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
@@ -65,8 +84,8 @@ class ClusterTrack:
         )
         self.predict_x = self.state.inst.x
 
-    def _estimate_point_num(self, enable=True):
-        if enable:
+    def _estimate_point_num(self):
+        if const.KF_ENABLE_EST:
             if self.cluster.point_num > self.N_est:
                 self.N_est = self.cluster.point_num
             else:
@@ -97,6 +116,20 @@ class ClusterTrack:
                     m
                 ] + const.KF_A_SPR * spread
 
+    def get_D(self):
+        dimension = const.MOTION_MODEL.KF_DIM[1]
+        pointcloud = self.cluster.pointcloud
+        centroid = self.cluster.centroid
+        disp = np.zeros((dimension, dimension), dtype="float")
+
+        for i in range(dimension):
+            for j in range(dimension):
+                disp[i, j] = np.mean(
+                    (pointcloud[:, i] - centroid[i]) * (pointcloud[:, j] - centroid[j])
+                )
+
+        return disp
+
     def _estimate_group_disp_matrix(self):
         a = self.cluster.point_num / self.N_est
         self.group_disp_est = (1 - a) * self.group_disp_est + a * self.get_D()
@@ -117,20 +150,6 @@ class ClusterTrack:
             (N_est - N) / ((N_est - 1) * N)
         ) * self.group_disp_est
 
-    def get_D(self):
-        dimension = const.MOTION_MODEL.KF_DIM[1]
-        pointcloud = self.cluster.pointcloud
-        centroid = self.cluster.centroid
-        disp = np.zeros((dimension, dimension), dtype="float")
-
-        for i in range(dimension):
-            for j in range(dimension):
-                disp[i, j] = np.mean(
-                    (pointcloud[:, i] - centroid[i]) * (pointcloud[:, j] - centroid[j])
-                )
-
-        return disp
-
     def update_state(self):
         self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
 
@@ -139,8 +158,9 @@ class ClusterTrack:
             self.lifetime = 0
         else:
             self.lifetime += 1
-            if self.status == DETECTED:
-                self.det_lifetime += 1
+
+        if self.status == DETECTED:
+            self.det_lifetime += 1
 
     def update_dt(self, reset=False):
         if reset:
@@ -280,48 +300,24 @@ class TrackBuffer:
 
         return unassigned
 
+    def track(self, pointcloud, batch: BatchedData):
+        # Prediction Step
+        self.predict_all()
 
-class BatchedData:
-    def __init__(self):
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+        # Association Step
+        unassigned = self.associate_points_to_tracks(pointcloud)
+        self.update_status()
+        self.update_ef_tracks()
 
-    def empty(self):
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+        # Update Step
+        self.update_all()
 
+        # Clustering of the remainder points Step
+        new_clusters = []
+        batch.add_frame(unassigned)
+        if batch.is_complete and len(batch.effective_data) > 0:
+            new_clusters = apply_DBscan(batch.effective_data)
+            batch.empty()
 
-def batch_frames(batch: BatchedData, new_data: np.array):
-    is_ready = False
-    batch.effective_data = np.append(batch.effective_data, new_data, axis=0)
-
-    if batch.counter < (const.FB_FRAMES_BATCH - 1):
-        batch.counter += 1
-    else:
-        batch.counter = 0
-        is_ready = True
-
-    return is_ready
-
-
-def perform_tracking(pointcloud, trackbuffer: TrackBuffer, batch: BatchedData):
-    # Prediction Step
-    trackbuffer.predict_all()
-
-    # Association Step
-    unassigned = trackbuffer.associate_points_to_tracks(pointcloud)
-    trackbuffer.update_status()
-    trackbuffer.update_ef_tracks()
-
-    # Update Step
-    trackbuffer.update_all()
-
-    # Clustering of the remainder points Step
-    new_clusters = []
-    is_ready = batch_frames(batch, unassigned)
-    if is_ready and len(batch.effective_data) != 0:
-        new_clusters = apply_DBscan(batch.effective_data)
-        batch.empty()
-
-        # Create new track for every new cluster
-        trackbuffer.add_tracks(new_clusters)
+            # Create new track for every new cluster
+            self.add_tracks(new_clusters)
