@@ -22,8 +22,7 @@ class BatchedData:
     -------
     - empty(): Reset the counter and create an empty effective_data array.
     - add_frame(new_data: numpy.ndarray): Add a new frame of data to the effective_data array.
-    - is_complete() -> bool: Check if the batch is complete based on the counter and the threshold FB_FRAMES_BATCH
-    set in the constants.py file.
+    - is_complete() -> bool: Check if the batch is complete
     """
 
     def __init__(self):
@@ -31,14 +30,29 @@ class BatchedData:
         self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
     def empty(self):
+        """
+        Reset the counter and create an empty effective_data array
+        """
         self.counter = 0
         self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
     def add_frame(self, new_data: np.array):
+        """
+        Add a new frame of data to the effective_data array.
+        """
         self.effective_data = np.append(self.effective_data, new_data, axis=0)
         self.counter += 1
 
     def is_complete(self):
+        """
+        Check if the batch is complete based on the counter and the threshold FB_FRAMES_BATCH
+        set in the constants.py file.
+
+        Returns
+        -------
+        bool
+            Whether or not the batch is complete.
+        """
         return self.counter >= (const.FB_FRAMES_BATCH - 1)
 
 

@@ -11,16 +11,16 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person4_dop.csv"
-P_EXPERIMENT_FILE_WRITE = "person2_mount.csv"
+P_EXPERIMENT_FILE_READ = "circular_movement.csv"
+P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
 P_CLASS = "no_luggage"
 
 
 ###### Scene Setup ######
 # Monitor Coordinates
-M_X = 0.6
-M_Y = -1
-M_Z = 0.6
+M_X: float = 0.6
+M_Y: float = -1
+M_Z: float = 0.6
 
 # Sensor
 S_HEIGHT = 1.7
@@ -28,7 +28,11 @@ S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
 V_3D_AXIS = [3.0, 6.0, 2.0]
-V_SCREEN_FADE_SIZE: float = 0.2
+V_SCREEN_FADE_SIZE_MAX: float = 0.5
+V_SCREEN_FADE_SIZE_MIN: float = 0.2
+V_SCREEN_FADE_WEIGHT: float = (
+    0.15  # square size reduction (m) per 1 meter of distance from sensor
+)
 V_BBOX_HEIGHT = 1.8
 
 
@@ -43,7 +47,7 @@ FB_DT = 0.1
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.3
-DB_MIN_SAMPLES = 15
+DB_MIN_SAMPLES = 18
 
 # Number of frames per Batch
 FB_FRAMES_BATCH = 3
@@ -53,7 +57,7 @@ FB_FRAMES_BATCH = 3
 # Tracks
 TR_LIFETIME = 8
 TR_LIFETIME_DET = 3  # Lifetime of tracks in state DETECTED
-TR_GATE = 3
+TR_GATE = 3.5
 
 # Kalman
 KF_R_STD = 100

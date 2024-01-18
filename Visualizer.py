@@ -77,7 +77,7 @@ class Visualizer:
         for patch in self.ax.patches:
             patch.remove()
 
-    def _calc_square(self, x, y, z):
+    def _calc_square_center(self, x, y, z):
         y_dist = y - M_Y
         x_dist = x - M_X
         z_dist = z - M_Z
@@ -140,8 +140,14 @@ class Visualizer:
                 track.state.inst.x[2],
             ]
         ).flatten()
-        center = self._calc_square(coords[0], coords[1], coords[2])
-        rect_size = const.V_SCREEN_FADE_SIZE
+        center = self._calc_square_center(coords[0], coords[1], coords[2])
+        rect_size = max(
+            const.V_SCREEN_FADE_SIZE_MIN,
+            min(
+                const.V_SCREEN_FADE_SIZE_MAX,
+                const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
+            ),
+        )
         vertices = [
             (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
             (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
@@ -202,7 +208,7 @@ class ScreenAdapter:
     def __init__(self):
         self.monitor_coords = [const.M_X, const.M_Y, const.M_Z]
         self.sensor_coords = [0, 0, const.S_HEIGHT]
-        self.rect_size = const.V_SCREEN_FADE_SIZE
+        self.rect_size = const.V_SCREEN_FADE_SIZE_MIN
 
     def _fade_center(self, x, y, z):
         y_dist = y - self.monitor_coords[1]
