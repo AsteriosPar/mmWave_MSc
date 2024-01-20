@@ -1,5 +1,6 @@
 import numpy as np
 import constants as const
+import math
 from filterpy.kalman import KalmanFilter
 from utils import apply_DBscan
 from typing import List
@@ -7,6 +8,9 @@ from typing import List
 DETECTED = 2
 ACTIVE = 1
 INACTIVE = 0
+
+STATIC = True
+DYNAMIC = False
 
 
 class BatchedData:
@@ -95,29 +99,31 @@ class PointCluster:
     - centroid (numpy.ndarray): The centroid of the cluster.
     - min_vals (numpy.ndarray): The minimum values in each dimension of the pointcloud.
     - max_vals (numpy.ndarray): The maximum values in each dimension of the pointcloud.
+    - status (bool): The cluster movement status (STATIC: True, DYNAMIC: False)
 
     Methods:
     -------
-    - get_min_max_coords(pointcloud: numpy.ndarray) -> Tuple[numpy.ndarray, numpy.ndarray]:
-        Get the minimum and maximum values in each dimension of the given pointcloud.
-
     - __init__(pointcloud: numpy.ndarray):
         Initialize PointCluster with a given pointcloud.
 
-    Note: Assumes that pointcloud is an np.array of tuples (x, y, z).
+    Note: Assumes that pointcloud is an np.array of tuples (x, y, z, x', y', z').
 
     """
 
-    def get_min_max_coords(self, pointcloud):
-        min_values = np.min(pointcloud, axis=0)
-        max_values = np.max(pointcloud, axis=0)
-        return (min_values, max_values)
-
     def __init__(self, pointcloud: np.array):
+        """
+        Initialize PointCluster with a given pointcloud.
+        """
         self.pointcloud = pointcloud
         self.point_num = pointcloud.shape[0]
         self.centroid = np.mean(pointcloud, axis=0)
-        (self.min_vals, self.max_vals) = self.get_min_max_coords(pointcloud)
+        self.min_vals = np.min(pointcloud, axis=0)
+        self.max_vals = np.max(pointcloud, axis=0)
+
+        if math.sqrt(np.sum((self.centroid[3:] ** 2))) < const.TR_VEL_THRES:
+            self.status = STATIC
+        else:
+            self.status = DYNAMIC
 
 
 class ClusterTrack:
@@ -372,7 +378,6 @@ class ClusterTrack:
             self.associate_pointcloud(np.array(track_clusters[0]))
 
         elif len(track_clusters) > 1:
-            # print(track_clusters)
             if self.status == DETECTED:
                 self.status = ACTIVE
                 self.associate_pointcloud(np.array(track_clusters[0]))
@@ -439,12 +444,17 @@ class TrackBuffer:
 
     def update_status(self):
         """
-        Update the status of tracks based on their lifetime and detection lifetime.
+        Update the status of tracks based on their mobility, lifetime and detection lifetime.
         """
         for track in self.effective_tracks:
-            if track.lifetime > const.TR_LIFETIME:
+            if track.cluster.status == DYNAMIC:
+                lifetime = const.TR_LIFETIME_DYNAMIC
+            else:
+                lifetime = const.TR_LIFETIME_STATIC
+
+            if track.lifetime > lifetime:
                 track.status = INACTIVE
-            elif track.det_lifetime > const.TR_LIFETIME_DET:
+            elif track.det_lifetime > const.TR_LIFETIME_DETECTED:
                 # Removes the DETECTED state off the track
                 track.status = ACTIVE
                 track.det_lifetime = 0

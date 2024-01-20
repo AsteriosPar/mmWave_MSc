@@ -18,7 +18,7 @@ P_CLASS = "no_luggage"
 
 ###### Scene Setup ######
 # Monitor Coordinates
-M_X: float = 0.6
+M_X: float = -0.6
 M_Y: float = -1
 M_Z: float = 0.6
 
@@ -46,8 +46,8 @@ FB_DT = 0.1
 # DBScan
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
-DB_EPS = 0.3
-DB_MIN_SAMPLES = 18
+DB_EPS = 0.2
+DB_MIN_SAMPLES = 20
 
 # Number of frames per Batch
 FB_FRAMES_BATCH = 3
@@ -55,8 +55,10 @@ FB_FRAMES_BATCH = 3
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_LIFETIME = 8
-TR_LIFETIME_DET = 3  # Lifetime of tracks in state DETECTED
+TR_LIFETIME_DYNAMIC = 8
+TR_LIFETIME_STATIC = 16
+TR_LIFETIME_DETECTED = 3  # Lifetime of tracks in state DETECTED
+TR_VEL_THRES = 0.05  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 3.5
 
 # Kalman
@@ -148,47 +150,8 @@ class CONST_VEL_MODEL:
 
 MOTION_MODEL = CONST_ACC_MODEL
 ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
+ENABLE_STATIC_CLUTTER = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)
 # KF_Q_CONT = block_diag(q2, q2)
-
-
-# def jacobian_matrix(state_vec):
-#     r = math.sqrt(state_vec[0] ** 2 + state_vec[1] ** 2 + state_vec[2] ** 2)
-#     return np.array(
-#         [
-#             [1, 0, 0, 0, 0, 0],
-#             [0, 1, 0, 0, 0, 0],
-#             [0, 0, 1, 0, 0, 0],
-#             [
-#                 (
-#                     state_vec[1]
-#                     * (state_vec[3] * state_vec[1] - state_vec[4] * state_vec[0])
-#                     + state_vec[2](
-#                         state_vec[3] * state_vec[2] - state_vec[5] * state_vec[0]
-#                     )
-#                 )
-#                 / (r**3),
-#                 (
-#                     state_vec[0]
-#                     * (state_vec[4] * state_vec[0] - state_vec[3] * state_vec[1])
-#                     + state_vec[2](
-#                         state_vec[4] * state_vec[2] - state_vec[5] * state_vec[1]
-#                     )
-#                 )
-#                 / (r**3),
-#                 (
-#                     state_vec[0]
-#                     * (state_vec[5] * state_vec[0] - state_vec[3] * state_vec[2])
-#                     + state_vec[1](
-#                         state_vec[5] * state_vec[1] - state_vec[4] * state_vec[2]
-#                     )
-#                 )
-#                 / (r**3),
-#                 state_vec[0] / r,
-#                 state_vec[1] / r,
-#                 state_vec[2] / r,
-#             ],
-#         ]
-#     )

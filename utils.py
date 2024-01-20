@@ -5,7 +5,7 @@ import numpy as np
 
 
 def altered_EuclideanDist(p1, p2):
-    # NOTE: The z-axis is let a bit looser since the sillouette of a person is tall and thin.
+    # NOTE: The z-axis has less weight in the distance metric since the sillouette of a person is tall and thin.
     # Also, the further away from the sensor the more sparse the points, so we need a weighing factor
     weight = 1 - ((p1[1] + p2[1]) / 2) * const.DB_RANGE_WEIGHT
     return weight * (
@@ -79,38 +79,39 @@ def preprocess_data(detObj):
     ef_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 
     for index in range(len(input_data)):
-        # if input_data[index][3] > 0:
-        # z-axis limits
-        # designated area limits
+        # Performs doppler check
+        if input_data[index][3] > 0 or not const.ENABLE_STATIC_CLUTTER:
+            # z-axis limits
+            # designated area limits
 
-        # Transform the radial velocity into Cartesian
-        r = math.sqrt(
-            input_data[index, 0] ** 2
-            + input_data[index, 1] ** 2
-            + input_data[index, 2] ** 2
-        )
-        vx = input_data[index, 3] * input_data[index, 0] / r
-        vy = input_data[index, 3] * input_data[index, 1] / r
-        vz = input_data[index, 3] * input_data[index, 2] / r
-
-        # Translate points to new coordinate system
-        transformed_point = point_transform_to_standard_axis(
-            np.array(
-                [
-                    input_data[index, 0],
-                    input_data[index, 1],
-                    input_data[index, 2],
-                    vx,
-                    vy,
-                    vz,
-                ]
+            # Transform the radial velocity into Cartesian
+            r = math.sqrt(
+                input_data[index, 0] ** 2
+                + input_data[index, 1] ** 2
+                + input_data[index, 2] ** 2
             )
-        )
+            vx = input_data[index, 3] * input_data[index, 0] / r
+            vy = input_data[index, 3] * input_data[index, 1] / r
+            vz = input_data[index, 3] * input_data[index, 2] / r
 
-        ef_data = np.append(
-            ef_data,
-            [transformed_point],
-            axis=0,
-        )
+            # Translate points to new coordinate system
+            transformed_point = point_transform_to_standard_axis(
+                np.array(
+                    [
+                        input_data[index, 0],
+                        input_data[index, 1],
+                        input_data[index, 2],
+                        vx,
+                        vy,
+                        vz,
+                    ]
+                )
+            )
+
+            ef_data = np.append(
+                ef_data,
+                [transformed_point],
+                axis=0,
+            )
 
     return ef_data
