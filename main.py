@@ -95,14 +95,14 @@ def main():
                     else:
                         trackbuffer.track(effective_data, batch)
 
-                    trackbuffer.dt_multiplier = 1
+                    trackbuffer.dt = 0
 
                 # Update visualization graphs
                 figure.update(trackbuffer)
 
                 figure.draw()
             else:
-                trackbuffer.dt_multiplier += 1
+                trackbuffer.dt += SLEEPTIME
 
             time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
 

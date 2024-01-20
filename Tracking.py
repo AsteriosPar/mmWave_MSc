@@ -155,8 +155,6 @@ class ClusterTrack:
         Number of frames the track has been active.
     det_lifetime : int
         Number of frames the track has been in the DETECTED status.
-    undetected_dt : float
-        Time duration since the last observation of a frame including this track.
     color : numpy.ndarray
         Random color assigned to the track for visualization.
     predict_x : numpy.ndarray
@@ -164,7 +162,7 @@ class ClusterTrack:
 
     Methods
     -------
-    predict_state(dt_multiplier)
+    predict_state(dt)
         Predict the state of the Kalman filter based on the time multiplier.
 
     _estimate_point_num()
@@ -191,9 +189,6 @@ class ClusterTrack:
     update_lifetime(reset=False)
         Update the track lifetime and detection lifetime.
 
-    update_dt(reset=False)
-        Update the duration since the last observed frame.
-
     seek_inner_clusters()
         Seek inner clusters within the current track.
 
@@ -211,25 +206,24 @@ class ClusterTrack:
         self.status = ACTIVE
         self.lifetime = 0
         self.det_lifetime = 0
-        self.undetected_dt = 0
         self.color = np.random.rand(
             3,
         )
         # NOTE: For visualizing purposes only
         self.predict_x = self.state.inst.x
 
-    def predict_state(self, dt_multiplier: float):
+    def predict_state(self, dt: float):
         """
         Predict the state of the Kalman filter based on the time multiplier.
 
         Parameters
         ----------
-        dt_multiplier : float
+        dt : float
             Time multiplier for the prediction.
         """
         self.state.inst.predict(
-            F=const.MOTION_MODEL.KF_F(dt_multiplier),
-            Q=const.MOTION_MODEL.KF_Q_DISCR(dt_multiplier),
+            F=const.MOTION_MODEL.KF_F(dt),
+            Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
         )
         self.predict_x = self.state.inst.x
 
@@ -338,26 +332,26 @@ class ClusterTrack:
         """
         self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
 
-    def update_lifetime(self, reset=False):
+    def update_lifetime(self, reset=False, dt=None):
         """
         Update the track lifetime and detection lifetime.
         """
         if reset:
             self.lifetime = 0
         else:
-            self.lifetime += 1
+            self.lifetime += dt
 
         if self.status == DETECTED:
-            self.det_lifetime += 1
+            self.det_lifetime += dt
 
-    def update_dt(self, reset=False):
-        """
-        Update the duration since the last observed frame.
-        """
-        if reset:
-            self.undetected_dt = 0
-        else:
-            self.undetected_dt += self.undetected_dt
+    # def update_dt(self, reset=False):
+    #     """
+    #     Update the duration since the last observed frame.
+    #     """
+    #     if reset:
+    #         self.lifetime = 0
+    #     else:
+    #         self.lifetime += self.lifetime
 
     def seek_inner_clusters(self):
         """
@@ -398,7 +392,7 @@ class TrackBuffer:
         List of all tracks in the buffer.
     effective_tracks : List[ClusterTrack]
         List of currently active (non-INACTIVE) tracks in the buffer.
-    dt_multiplier : int
+    dt : int
         Time multiplier used for predicting states.
 
     Methods
@@ -440,7 +434,7 @@ class TrackBuffer:
         """
         self.tracks: List[ClusterTrack] = []
         self.effective_tracks: List[ClusterTrack] = []
-        self.dt_multiplier = 1
+        self.dt = 0
 
     def update_status(self):
         """
@@ -548,7 +542,7 @@ class TrackBuffer:
         Predict the state of all effective tracks.
         """
         for track in self.effective_tracks:
-            track.predict_state(track.undetected_dt + self.dt_multiplier)
+            track.predict_state(track.lifetime + self.dt)
 
     def update_all(self):
         """
@@ -608,11 +602,9 @@ class TrackBuffer:
 
         for j, track in enumerate(self.effective_tracks):
             if len(clouds[j]) == 0:
-                track.update_lifetime()
-                track.update_dt()
+                track.update_lifetime(dt=self.dt)
             else:
                 track.update_lifetime(reset=True)
-                track.update_dt(reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
                 # inner cluster separation
                 new_inner_clusters.append(track.seek_inner_clusters())

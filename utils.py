@@ -81,9 +81,6 @@ def preprocess_data(detObj):
     for index in range(len(input_data)):
         # Performs doppler check
         if input_data[index][3] > 0 or not const.ENABLE_STATIC_CLUTTER:
-            # z-axis limits
-            # designated area limits
-
             # Transform the radial velocity into Cartesian
             r = math.sqrt(
                 input_data[index, 0] ** 2
@@ -108,10 +105,17 @@ def preprocess_data(detObj):
                 )
             )
 
-            ef_data = np.append(
-                ef_data,
-                [transformed_point],
-                axis=0,
-            )
+            # Perform scene constraints filtering
+            # TODO: Add more scene constraints
+            if (
+                transformed_point[2] <= 2
+                and transformed_point[2] > -0.1
+                and transformed_point[1] > 0
+            ):
+                ef_data = np.append(
+                    ef_data,
+                    [transformed_point],
+                    axis=0,
+                )
 
     return ef_data

@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "circular_movement.csv"
+P_EXPERIMENT_FILE_READ = "person4_dop.csv"
 P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
 P_CLASS = "no_luggage"
 
@@ -47,17 +47,17 @@ FB_DT = 0.1
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.2
-DB_MIN_SAMPLES = 20
+DB_MIN_SAMPLES = 25
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 3
+FB_FRAMES_BATCH = 4
 
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_LIFETIME_DYNAMIC = 8
-TR_LIFETIME_STATIC = 16
-TR_LIFETIME_DETECTED = 3  # Lifetime of tracks in state DETECTED
+TR_LIFETIME_DYNAMIC = 2  # sec
+TR_LIFETIME_STATIC = 4
+TR_LIFETIME_DETECTED = 0.5  # Lifetime of tracks in state DETECTED
 TR_VEL_THRES = 0.05  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 3.5
 
@@ -97,26 +97,26 @@ class CONST_ACC_MODEL:
         return [init[0], init[1], init[2], init[3], init[4], init[5], 0, 0, 0]
 
     # State Transition Matrix
-    def KF_F(mult):
+    def KF_F(dt):
         return np.array(
             [
-                [1, 0, 0, (FB_DT * mult), 0, 0, (0.5 * (FB_DT * mult) ** 2), 0, 0],
-                [0, 1, 0, 0, (FB_DT * mult), 0, 0, (0.5 * (FB_DT * mult) ** 2), 0],
-                [0, 0, 1, 0, 0, (FB_DT * mult), 0, 0, (0.5 * (FB_DT * mult) ** 2)],
-                [0, 0, 0, 1, 0, 0, (FB_DT * mult), 0, 0],
-                [0, 0, 0, 0, 1, 0, 0, (FB_DT * mult), 0],
-                [0, 0, 0, 0, 0, 1, 0, 0, (FB_DT * mult)],
+                [1, 0, 0, dt, 0, 0, (0.5 * dt**2), 0, 0],
+                [0, 1, 0, 0, dt, 0, 0, (0.5 * dt**2), 0],
+                [0, 0, 1, 0, 0, dt, 0, 0, (0.5 * dt**2)],
+                [0, 0, 0, 1, 0, 0, dt, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, dt, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, dt],
                 [0, 0, 0, 0, 0, 0, 1, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 1, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 1],
             ]
         )
 
-    def KF_Q_DISCR(mult):
+    def KF_Q_DISCR(dt):
         return block_diag(
-            Q_discrete_white_noise(dim=3, dt=FB_DT * mult, var=KF_Q_STD),
-            Q_discrete_white_noise(dim=3, dt=FB_DT * mult, var=KF_Q_STD),
-            Q_discrete_white_noise(dim=3, dt=FB_DT * mult, var=KF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=dt, var=KF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=dt, var=KF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=dt, var=KF_Q_STD),
         )
 
 
@@ -129,22 +129,22 @@ class CONST_VEL_MODEL:
         return [init[0], init[1], init[2], init[3], init[4], init[5]]
 
     # State Transition Matrix
-    def KF_F(mult):
+    def KF_F(dt):
         return np.array(
             [
-                [1, 0, 0, FB_DT * mult, 0, 0],
-                [0, 1, 0, 0, FB_DT * mult, 0],
-                [0, 0, 1, 0, 0, FB_DT * mult],
+                [1, 0, 0, dt, 0, 0],
+                [0, 1, 0, 0, dt, 0],
+                [0, 0, 1, 0, 0, dt],
                 [0, 0, 0, 1, 0, 0],
                 [0, 0, 0, 0, 1, 0],
                 [0, 0, 0, 0, 0, 1],
             ]
         )
 
-    def KF_Q_DISCR(mult):
+    def KF_Q_DISCR(dt):
         return block_diag(
-            Q_discrete_white_noise(dim=3, dt=FB_DT * mult, var=KF_Q_STD),
-            Q_discrete_white_noise(dim=3, dt=FB_DT * mult, var=KF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=dt, var=KF_Q_STD),
+            Q_discrete_white_noise(dim=3, dt=dt, var=KF_Q_STD),
         )
 
 
