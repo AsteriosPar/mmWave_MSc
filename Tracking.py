@@ -147,6 +147,8 @@ class ClusterTrack:
         Estimated group dispersion matrix.
     cluster : PointCluster
         PointCluster associated with the track.
+    batch : BatcedData
+        The collection of overlaying previous frames
     state : KalmanState
         KalmanState instance for motion estimation.
     status : int (INACTIVE or ACTIVE or DETECTED)
@@ -202,6 +204,7 @@ class ClusterTrack:
             np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_GROUP_DISP_EST_INIT
         )
         self.cluster = cluster
+        self.batch = BatchedData()
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
         self.lifetime = 0
@@ -332,7 +335,7 @@ class ClusterTrack:
         """
         self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
 
-    def update_lifetime(self, reset=False, dt=None):
+    def update_lifetime(self, dt, reset=False):
         """
         Update the track lifetime and detection lifetime.
         """
@@ -343,15 +346,6 @@ class ClusterTrack:
 
         if self.status == DETECTED:
             self.det_lifetime += dt
-
-    # def update_dt(self, reset=False):
-    #     """
-    #     Update the duration since the last observed frame.
-    #     """
-    #     if reset:
-    #         self.lifetime = 0
-    #     else:
-    #         self.lifetime += self.lifetime
 
     def seek_inner_clusters(self):
         """
@@ -366,7 +360,21 @@ class ClusterTrack:
             List of new inner track clusters (PointCluster instances).
 
         """
-        track_clusters = apply_DBscan(self.cluster.pointcloud)
+
+        # Allow frame overlaying over static tracks for better resolution
+        if self.cluster.status == STATIC:
+            self.batch.add_frame(self.cluster.pointcloud)
+            print(f"counter: {self.batch.counter}")
+            pointcloud = self.batch.effective_data
+        else:
+            pointcloud = self.cluster.pointcloud
+
+        # Apply clustering to identify inner clusters
+        track_clusters = apply_DBscan(
+            pointcloud=pointcloud,
+            eps=const.DB_INNER_EPS,
+            min_samples=const.DB_INNER_MIN_SAMPLES,
+        )
         new_track_clusters = []
         if len(track_clusters) == 1:
             self.associate_pointcloud(np.array(track_clusters[0]))
@@ -378,6 +386,10 @@ class ClusterTrack:
                 new_track_clusters = [track_clusters[1]]
             else:
                 self.status = DETECTED
+                print("detected")
+
+        if self.cluster.status == DYNAMIC or self.batch.is_complete():
+            self.batch.empty()
 
         return new_track_clusters
 
@@ -604,7 +616,7 @@ class TrackBuffer:
             if len(clouds[j]) == 0:
                 track.update_lifetime(dt=self.dt)
             else:
-                track.update_lifetime(reset=True)
+                track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
                 # inner cluster separation
                 new_inner_clusters.append(track.seek_inner_clusters())

@@ -15,10 +15,10 @@ def altered_EuclideanDist(p1, p2):
     )
 
 
-def apply_DBscan(pointcloud):
+def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES):
     dbscan = DBSCAN(
-        eps=const.DB_EPS,
-        min_samples=const.DB_MIN_SAMPLES,
+        eps=eps,
+        min_samples=min_samples,
         metric=altered_EuclideanDist,
     )
 

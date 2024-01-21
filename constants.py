@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "person4_dop.csv"
+P_EXPERIMENT_FILE_READ = "resolution_check.csv"
 P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
 P_CLASS = "no_luggage"
 
@@ -49,21 +49,25 @@ DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.2
 DB_MIN_SAMPLES = 25
 
+DB_INNER_EPS = 0.5
+DB_INNER_MIN_SAMPLES = 10
+
+
 # Number of frames per Batch
-FB_FRAMES_BATCH = 4
+FB_FRAMES_BATCH = 6
 
 
 ###### Tracking and Kalman ######
 # Tracks
 TR_LIFETIME_DYNAMIC = 2  # sec
 TR_LIFETIME_STATIC = 4
-TR_LIFETIME_DETECTED = 0.5  # Lifetime of tracks in state DETECTED
-TR_VEL_THRES = 0.05  # Velocity threshold for STATIC or DYNAMIC track
-TR_GATE = 3.5
+TR_LIFETIME_DETECTED = 2  # Lifetime of tracks in state DETECTED
+TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
+TR_GATE = 4
 
 # Kalman
-KF_R_STD = 100
-KF_Q_STD = 0.01
+KF_R_STD = 10
+KF_Q_STD = 1
 
 # Initialization values
 KF_P_INIT = 0.001
