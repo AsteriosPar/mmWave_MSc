@@ -77,18 +77,20 @@ class Visualizer:
         for patch in self.ax.patches:
             patch.remove()
 
-    def _calc_square_center(self, x, y, z):
+    def _calc_projection_points(self, x, y, z=None):
         y_dist = y - M_Y
+        z_screen = None
+
         x_dist = x - M_X
-        z_dist = z - M_Z
-
         x1 = -M_Y / (y_dist / x_dist)
-        z1 = -M_Y / (y_dist / z_dist)
+        x_screen = x1 + M_X
 
-        screen_x = x1 + M_X
-        screen_z = z1 + M_Z
+        if z is not None:
+            z_dist = z - M_Z
+            z1 = -M_Y / (y_dist / z_dist)
+            z_screen = z1 + M_Z
 
-        return (screen_x, screen_z)
+        return (x_screen, z_screen)
 
     def update_raw(self, x, y, z):
         # Update the data in the 3D scatter plot
@@ -132,7 +134,7 @@ class Visualizer:
         self.ax.add_collection3d(cube)
         return cube
 
-    def _draw_screen_fade(self, track):
+    def _draw_screen_fade(self, track: ClusterTrack):
         coords = np.array(
             [
                 track.state.inst.x[0],
@@ -140,9 +142,20 @@ class Visualizer:
                 track.state.inst.x[2],
             ]
         ).flatten()
-        center = self._calc_square_center(coords[0], coords[1], coords[2])
+        center = self._calc_projection_points(
+            x=coords[0], y=coords[1], z=const.V_BBOX_EYESIGHT_HEIGHT
+        )
+        x_screen_min, _ = self._calc_projection_points(
+            x=track.cluster.min_vals[0], y=track.cluster.min_vals[1]
+        )  # We choose min vals of y for Worst Case Scenario
+        x_screen_max, _ = self._calc_projection_points(
+            x=track.cluster.max_vals[0], y=track.cluster.min_vals[1]
+        )
+        rect_width_min = x_screen_max - x_screen_min
+
         rect_size = max(
             const.V_SCREEN_FADE_SIZE_MIN,
+            rect_width_min,
             min(
                 const.V_SCREEN_FADE_SIZE_MAX,
                 const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,

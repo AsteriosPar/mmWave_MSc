@@ -79,7 +79,7 @@ def main():
                 # update the raw data scatter plot
                 figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
-                # Apply scene constraints and static clutter removal
+                # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 
                 if effective_data.shape[0] != 0:

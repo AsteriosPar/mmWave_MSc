@@ -5,7 +5,6 @@ from filterpy.kalman import KalmanFilter
 from utils import apply_DBscan
 from typing import List
 
-DETECTED = 2
 ACTIVE = 1
 INACTIVE = 0
 
@@ -151,12 +150,10 @@ class ClusterTrack:
         The collection of overlaying previous frames
     state : KalmanState
         KalmanState instance for motion estimation.
-    status : int (INACTIVE or ACTIVE or DETECTED)
+    status : int (INACTIVE or ACTIVE)
         Current status of the track.
     lifetime : int
         Number of frames the track has been active.
-    det_lifetime : int
-        Number of frames the track has been in the DETECTED status.
     color : numpy.ndarray
         Random color assigned to the track for visualization.
     predict_x : numpy.ndarray
@@ -189,7 +186,7 @@ class ClusterTrack:
         Update the state of the Kalman filter based on the associated pointcloud.
 
     update_lifetime(reset=False)
-        Update the track lifetime and detection lifetime.
+        Update the track lifetime.
 
     seek_inner_clusters()
         Seek inner clusters within the current track.
@@ -208,7 +205,6 @@ class ClusterTrack:
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
         self.lifetime = 0
-        self.det_lifetime = 0
         self.color = np.random.rand(
             3,
         )
@@ -337,15 +333,12 @@ class ClusterTrack:
 
     def update_lifetime(self, dt, reset=False):
         """
-        Update the track lifetime and detection lifetime.
+        Update the track lifetime.
         """
         if reset:
             self.lifetime = 0
         else:
             self.lifetime += dt
-
-        if self.status == DETECTED:
-            self.det_lifetime += dt
 
     def seek_inner_clusters(self):
         """
@@ -364,7 +357,6 @@ class ClusterTrack:
         # Allow frame overlaying over static tracks for better resolution
         if self.cluster.status == STATIC:
             self.batch.add_frame(self.cluster.pointcloud)
-            print(f"counter: {self.batch.counter}")
             pointcloud = self.batch.effective_data
         else:
             pointcloud = self.cluster.pointcloud
@@ -376,17 +368,12 @@ class ClusterTrack:
             min_samples=const.DB_INNER_MIN_SAMPLES,
         )
         new_track_clusters = []
-        if len(track_clusters) == 1:
-            self.associate_pointcloud(np.array(track_clusters[0]))
+        if len(track_clusters) > 0:
+            # self.associate_pointcloud(np.array(track_clusters[0]))
 
-        elif len(track_clusters) > 1:
-            if self.status == DETECTED:
-                self.status = ACTIVE
-                self.associate_pointcloud(np.array(track_clusters[0]))
+            if len(track_clusters) > 1:
                 new_track_clusters = [track_clusters[1]]
-            else:
-                self.status = DETECTED
-                print("detected")
+                self.batch.empty()
 
         if self.cluster.status == DYNAMIC or self.batch.is_complete():
             self.batch.empty()
@@ -410,7 +397,7 @@ class TrackBuffer:
     Methods
     -------
     update_status()
-        Update the status of tracks based on their lifetime and detection lifetime.
+        Update the status of tracks based on their lifetime.
 
     update_ef_tracks()
         Update the list of effective tracks (excluding INACTIVE tracks).
@@ -450,7 +437,7 @@ class TrackBuffer:
 
     def update_status(self):
         """
-        Update the status of tracks based on their mobility, lifetime and detection lifetime.
+        Update the status of tracks based on their mobility and lifetime.
         """
         for track in self.effective_tracks:
             if track.cluster.status == DYNAMIC:
@@ -460,14 +447,10 @@ class TrackBuffer:
 
             if track.lifetime > lifetime:
                 track.status = INACTIVE
-            elif track.det_lifetime > const.TR_LIFETIME_DETECTED:
-                # Removes the DETECTED state off the track
-                track.status = ACTIVE
-                track.det_lifetime = 0
 
     def update_ef_tracks(self):
         """
-        Update the list of effective tracks (excluding INACTIVE tracks).
+        Update the list of effective tracks.
         """
         self.effective_tracks = [
             track for track in self.tracks if track.status != INACTIVE

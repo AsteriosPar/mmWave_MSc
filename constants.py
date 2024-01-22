@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "resolution_check.csv"
+P_EXPERIMENT_FILE_READ = "circular_movement.csv"
 P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
 P_CLASS = "no_luggage"
 
@@ -31,9 +31,10 @@ V_3D_AXIS = [3.0, 6.0, 2.0]
 V_SCREEN_FADE_SIZE_MAX: float = 0.5
 V_SCREEN_FADE_SIZE_MIN: float = 0.2
 V_SCREEN_FADE_WEIGHT: float = (
-    0.15  # square size reduction (m) per 1 meter of distance from sensor
+    0.08  # square size reduction (m) per 1 meter of distance from sensor
 )
 V_BBOX_HEIGHT = 1.8
+V_BBOX_EYESIGHT_HEIGHT = 1.75
 
 
 ###### Frames and Buffering #######
@@ -47,7 +48,7 @@ FB_DT = 0.1
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.2
-DB_MIN_SAMPLES = 25
+DB_MIN_SAMPLES = 20
 
 DB_INNER_EPS = 0.5
 DB_INNER_MIN_SAMPLES = 10
@@ -59,11 +60,10 @@ FB_FRAMES_BATCH = 6
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_LIFETIME_DYNAMIC = 2  # sec
-TR_LIFETIME_STATIC = 4
-TR_LIFETIME_DETECTED = 2  # Lifetime of tracks in state DETECTED
+TR_LIFETIME_DYNAMIC = 2.5  # sec
+TR_LIFETIME_STATIC = 10
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
-TR_GATE = 4
+TR_GATE = 4.5
 
 # Kalman
 KF_R_STD = 10

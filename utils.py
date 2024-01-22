@@ -71,7 +71,40 @@ def point_transform_to_standard_axis(input):
 
 
 def preprocess_data(detObj):
-    """this function takes the pointcloud from the sensor, filters it, converts radial to cartesian velocity and transforms it to the standard vertical-horizontal plane axis system"""
+    """
+    Preprocesses the point cloud data from the sensor.
+
+    This function filters the input point cloud, converts radial to Cartesian velocity,
+    and transforms the coordinates to the standard vertical-horizontal plane axis system.
+
+    - Performs a Doppler check and applies static clutter filtering if enabled.
+    - Transforms radial velocity into Cartesian components.
+    - Translates points to a new coordinate system.
+    - Applies scene constraints filtering based on z-coordinate and y-coordinate.
+
+
+    Parameters
+    ----------
+    detObj : dict
+        Dictionary containing the raw detection data with keys:
+        - "x": x-coordinate
+        - "y": y-coordinate
+        - "z": z-coordinate
+        - "doppler": Doppler velocity
+
+    Returns
+    -------
+    np.ndarray
+        Preprocessed data in the standard vertical-horizontal plane axis system.
+        Columns:
+        - x-coordinate
+        - y-coordinate
+        - z-coordinate
+        - Cartesian velocity along the x-axis
+        - Cartesian velocity along the y-axis
+        - Cartesian velocity along the z-axis
+
+    """
     input_data = np.column_stack(
         (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
     )
