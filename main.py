@@ -4,7 +4,7 @@ import csv
 import matplotlib.pyplot as plt
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
-from Visualizer import Visualizer
+from Visualizer import Visualizer, ScreenAdapter
 from utils import (
     apply_DBscan,
     preprocess_data,
@@ -53,9 +53,10 @@ def main():
         )
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
-    figure = Visualizer()
+    # figure = Visualizer()
     trackbuffer = TrackBuffer()
     batch = BatchedData()
+    screen_adapter = ScreenAdapter()
 
     # Control loop
     while True:
@@ -74,10 +75,10 @@ def main():
                 dataOk, _, detObj = IWR1443.read()
 
             if dataOk:
-                figure.clear()
+                # figure.clear()
 
                 # update the raw data scatter plot
-                figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                # figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
 
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
@@ -97,10 +98,11 @@ def main():
 
                     trackbuffer.dt = 0
 
+                screen_adapter.update(trackbuffer)
                 # Update visualization graphs
-                figure.update(trackbuffer)
+                # figure.update(trackbuffer)
 
-                figure.draw()
+                # figure.draw()
             else:
                 trackbuffer.dt += SLEEPTIME
 
