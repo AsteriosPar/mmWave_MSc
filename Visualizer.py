@@ -5,6 +5,52 @@ from constants import M_X, M_Y, M_Z
 from Tracking import TrackBuffer, ClusterTrack
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
+from matplotlib.patches import Rectangle
+
+
+def calc_projection_points(x, y, z=None):
+    y_dist = y - M_Y
+    z_screen = None
+
+    x_dist = x - M_X
+    x1 = -M_Y / (y_dist / x_dist)
+    x_screen = x1 + M_X
+
+    if z is not None:
+        z_dist = z - M_Z
+        z1 = -M_Y / (y_dist / z_dist)
+        z_screen = z1 + M_Z
+
+    return (x_screen, z_screen)
+
+
+def calc_fade_square(track: ClusterTrack):
+    coords = np.array(
+        [
+            track.state.inst.x[0],
+            track.state.inst.x[1],
+            track.state.inst.x[2],
+        ]
+    ).flatten()
+    center = calc_projection_points(
+        x=coords[0], y=coords[1], z=const.V_BBOX_EYESIGHT_HEIGHT
+    )
+    x_screen_min, _ = calc_projection_points(
+        x=track.cluster.min_vals[0], y=track.cluster.min_vals[1]
+    )  # We choose min vals of y for Worst Case Scenario
+    x_screen_max, _ = calc_projection_points(
+        x=track.cluster.max_vals[0], y=track.cluster.min_vals[1]
+    )
+    rect_width_min = x_screen_max - x_screen_min
+    rect_size = max(
+        const.V_SCREEN_FADE_SIZE_MIN,
+        rect_width_min,
+        min(
+            const.V_SCREEN_FADE_SIZE_MAX,
+            const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
+        ),
+    )
+    return (center, rect_size)
 
 
 class Visualizer:
@@ -77,21 +123,6 @@ class Visualizer:
         for patch in self.ax.patches:
             patch.remove()
 
-    def _calc_projection_points(self, x, y, z=None):
-        y_dist = y - M_Y
-        z_screen = None
-
-        x_dist = x - M_X
-        x1 = -M_Y / (y_dist / x_dist)
-        x_screen = x1 + M_X
-
-        if z is not None:
-            z_dist = z - M_Z
-            z1 = -M_Y / (y_dist / z_dist)
-            z_screen = z1 + M_Z
-
-        return (x_screen, z_screen)
-
     def update_raw(self, x, y, z):
         # Update the data in the 3D scatter plot
         self.scatter_raw._offsets3d = (x, y, z)
@@ -134,33 +165,8 @@ class Visualizer:
         self.ax.add_collection3d(cube)
         return cube
 
-    def _draw_screen_fade(self, track: ClusterTrack):
-        coords = np.array(
-            [
-                track.state.inst.x[0],
-                track.state.inst.x[1],
-                track.state.inst.x[2],
-            ]
-        ).flatten()
-        center = self._calc_projection_points(
-            x=coords[0], y=coords[1], z=const.V_BBOX_EYESIGHT_HEIGHT
-        )
-        x_screen_min, _ = self._calc_projection_points(
-            x=track.cluster.min_vals[0], y=track.cluster.min_vals[1]
-        )  # We choose min vals of y for Worst Case Scenario
-        x_screen_max, _ = self._calc_projection_points(
-            x=track.cluster.max_vals[0], y=track.cluster.min_vals[1]
-        )
-        rect_width_min = x_screen_max - x_screen_min
-
-        rect_size = max(
-            const.V_SCREEN_FADE_SIZE_MIN,
-            rect_width_min,
-            min(
-                const.V_SCREEN_FADE_SIZE_MAX,
-                const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
-            ),
-        )
+    def draw_fading_window(self, track):
+        (center, rect_size) = calc_fade_square(track)
         vertices = [
             (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
             (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
@@ -204,7 +210,7 @@ class Visualizer:
                 self.dynamic_art.append(
                     self._draw_bounding_box(track.cluster.centroid, color="green")
                 )
-            self.dynamic_art.append(self._draw_screen_fade(track))
+            self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot
         self.scatter = self.ax.scatter(x_all, y_all, z_all, c=color_all, marker="o")
@@ -219,39 +225,37 @@ class Visualizer:
 
 class ScreenAdapter:
     def __init__(self):
-        self.monitor_coords = [const.M_X, const.M_Y, const.M_Z]
-        self.sensor_coords = [0, 0, const.S_HEIGHT]
-        self.rect_size = const.V_SCREEN_FADE_SIZE_MIN
+        plt.switch_backend("Qt5Agg")
 
-    def _fade_center(self, x, y, z):
-        y_dist = y - self.monitor_coords[1]
-        x_dist = x - self.monitor_coords[0]
-        z_dist = z - self.monitor_coords[2]
+        # Create a figure with a transparent background
+        self.fig, self.ax = plt.subplots(
+            figsize=(10, 8), frameon=False, facecolor="none"
+        )
+        self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
+        self.ax.set_ylim(0, const.V_3D_AXIS[2])
+        self.ax.set_axis_off()
 
-        x1 = -self.monitor_coords[1] / (y_dist / x_dist)
-        z1 = -self.monitor_coords[1] / (y_dist / z_dist)
+        # Maximize the figure window
+        figManager = plt.get_current_fig_manager()
+        figManager.window.showMaximized()
 
-        screen_x = x1 + self.monitor_coords[0]
-        screen_z = z1 + self.monitor_coords[2]
+    def update(self, trackbuffer: TrackBuffer):
+        # Update the square in the 2D plot
+        for patch in self.ax.patches:
+            patch.remove()
 
-        return (screen_x, screen_z)
+        for track in trackbuffer.effective_tracks:
+            (center, rect_size) = calc_fade_square(track)
 
-    def fade_shape(self, track: ClusterTrack):
-        coords = np.array(
-            [
-                track.state.inst.x[0],
-                track.state.inst.x[1],
-                track.state.inst.x[2] + const.S_HEIGHT,
-            ]
-        ).flatten()
-        center = self._fade_center(coords[0], coords[1], coords[2])
-        vertices = [
-            (center[0] - self.rect_size / 2, 0, center[1] - self.rect_size / 2),
-            (center[0] + self.rect_size / 2, 0, center[1] - self.rect_size / 2),
-            (center[0] + self.rect_size / 2, 0, center[1] + self.rect_size / 2),
-            (center[0] - self.rect_size / 2, 0, center[1] + self.rect_size / 2),
-        ]
+            # Plot the filled square with updated center coordinates and alpha
+            square = Rectangle(
+                (center[0] - rect_size / 2, center[1] - rect_size / 2),
+                rect_size,
+                rect_size,
+                alpha=0.9,
+                color="black",
+            )
+            self.ax.add_patch(square)
 
-        # Create a Poly3DCollection
-        rectangle = Poly3DCollection([vertices], facecolors="black", alpha=1)
-        return rectangle
+        plt.draw()
+        plt.pause(0.05)
