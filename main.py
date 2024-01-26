@@ -53,10 +53,13 @@ def main():
         )
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
-    # figure = Visualizer()
+    if const.SCREEN_CONNECTED:
+        visual = ScreenAdapter()
+    else:
+        visual = Visualizer()
+
     trackbuffer = TrackBuffer()
     batch = BatchedData()
-    screen_adapter = ScreenAdapter()
 
     # Control loop
     while True:
@@ -75,11 +78,6 @@ def main():
                 dataOk, _, detObj = IWR1443.read()
 
             if dataOk:
-                # figure.clear()
-
-                # update the raw data scatter plot
-                # figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
-
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 
@@ -98,11 +96,15 @@ def main():
 
                     trackbuffer.dt = 0
 
-                screen_adapter.update(trackbuffer)
-                # Update visualization graphs
-                # figure.update(trackbuffer)
-
-                # figure.draw()
+                if const.SCREEN_CONNECTED:
+                    visual.update(trackbuffer)
+                else:
+                    visual.clear()
+                    # update the raw data scatter plot
+                    visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                    # Update visualization graphs
+                    visual.update(trackbuffer)
+                    visual.draw()
             else:
                 trackbuffer.dt += SLEEPTIME
 
