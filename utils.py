@@ -113,7 +113,7 @@ def preprocess_data(detObj):
 
     for index in range(len(input_data)):
         # Performs doppler check
-        if input_data[index][3] > 0 or not const.ENABLE_STATIC_CLUTTER:
+        if not (input_data[index][3] == 0 and const.ENABLE_STATIC_CLUTTER):
             # Transform the radial velocity into Cartesian
             r = math.sqrt(
                 input_data[index, 0] ** 2

@@ -11,7 +11,7 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "circular_movement.csv"
+P_EXPERIMENT_FILE_READ = "resolution_check.csv"
 P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
 P_CLASS = "no_luggage"
 
@@ -154,8 +154,8 @@ class CONST_VEL_MODEL:
 
 MOTION_MODEL = CONST_ACC_MODEL
 ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
-ENABLE_STATIC_CLUTTER = False
-SCREEN_CONNECTED = True
+ENABLE_STATIC_CLUTTER = True
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)
