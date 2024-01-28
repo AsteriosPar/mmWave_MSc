@@ -105,9 +105,7 @@ def preprocess_data(detObj):
         - Cartesian velocity along the z-axis
 
     """
-    input_data = np.column_stack(
-        (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
-    )
+    input_data = np.vstack((detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])).T
 
     ef_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 

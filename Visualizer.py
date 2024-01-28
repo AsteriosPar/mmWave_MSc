@@ -1,4 +1,8 @@
 import numpy as np
+import matplotlib
+
+matplotlib.use("TkAgg")
+
 import matplotlib.pyplot as plt
 import constants as const
 from constants import M_X, M_Y, M_Z
@@ -6,6 +10,13 @@ from Tracking import TrackBuffer, ClusterTrack
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
 from matplotlib.patches import Rectangle
+
+import pyqtgraph as pg
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QTimer, Qt
+import sys
+from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtWidgets import QGraphicsRectItem
 
 
 def calc_projection_points(x, y, z=None):
@@ -223,39 +234,132 @@ class Visualizer:
         plt.pause(0.05)  # Pause for a short time to allow for updating
 
 
+# class ScreenAdapter:
+#     def __init__(self):
+#         plt.switch_backend("Qt5Agg")
+
+#         # Create a figure with a transparent background
+#         self.fig, self.ax = plt.subplots(
+#             figsize=(10, 8), frameon=False, facecolor="none"
+#         )
+#         self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
+#         self.ax.set_ylim(0, const.V_3D_AXIS[2])
+#         self.ax.set_axis_off()
+
+#         # Maximize the figure window
+#         figManager = plt.get_current_fig_manager()
+#         figManager.window.showMaximized()
+
+#     def update(self, trackbuffer: TrackBuffer):
+#         # Update the square in the 2D plot
+#         for patch in self.ax.patches:
+#             patch.remove()
+
+#         for track in trackbuffer.effective_tracks:
+#             (center, rect_size) = calc_fade_square(track)
+
+#             # Plot the filled square with updated center coordinates and alpha
+#             square = Rectangle(
+#                 (center[0] - rect_size / 2, center[1] - rect_size / 2),
+#                 rect_size,
+#                 rect_size,
+#                 alpha=0.9,
+#                 color="black",
+#             )
+#             self.ax.add_patch(square)
+
+#         plt.draw()
+#         plt.show(block=False)
+#         plt.pause(0.01)
+
+
+# class ScreenAdapter:
+#     def __init__(self):
+#         # Create the PyQtGraph window
+#         self.win = pg.GraphicsLayoutWidget()
+#         self.view = self.win.addPlot()
+#         self.view.setAspectLocked()
+#         self.view.setRange(
+#             xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
+#             yRange=(0, const.V_3D_AXIS[2]),
+#         )
+
+#         # Maximize the window
+#         self.win.showMaximized()
+
+#     def update(self, trackbuffer):
+#         # Clear previous items in the view
+#         self.view.clear()
+
+#         for track in trackbuffer.effective_tracks:
+#             (center, rect_size) = calc_fade_square(track)
+
+#             # Create a white square
+#             square = pg.RectROI(
+#                 [center[0] - rect_size / 2, center[1] - rect_size / 2],
+#                 [rect_size, rect_size],
+#                 pen={"color": "w"},
+#             )
+
+#             # Add the RectROI to the view and store in the list
+#             self.view.addItem(square)
+
+#             fill_item = QGraphicsRectItem(square.boundingRect())
+#             brush_color = QBrush(QColor(0, 0, 255, 100))
+#             fill_item.setBrush(brush_color)
+#             square.addMarker(fill_item, 0, 0)
+
+#         # Update the view
+#         QApplication.processEvents()
+
+
 class ScreenAdapter:
     def __init__(self):
-        plt.switch_backend("Qt5Agg")
-
-        # Create a figure with a transparent background
-        self.fig, self.ax = plt.subplots(
-            figsize=(10, 8), frameon=False, facecolor="none"
+        # Create the PyQtGraph window
+        self.win = pg.GraphicsLayoutWidget()
+        self.view = self.win.addPlot()
+        self.view.setAspectLocked()
+        self.view.setRange(
+            xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
+            yRange=(0, const.V_3D_AXIS[2]),
         )
-        self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
-        self.ax.set_ylim(0, const.V_3D_AXIS[2])
-        self.ax.set_axis_off()
 
-        # Maximize the figure window
-        figManager = plt.get_current_fig_manager()
-        figManager.window.showMaximized()
+        # Hide grid lines by adjusting the appearance of the axis
+        self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
+        self.view.getAxis("left").setPen(pg.mkPen(color=(255, 255, 255, 0)))
 
-    def update(self, trackbuffer: TrackBuffer):
-        # Update the square in the 2D plot
-        for patch in self.ax.patches:
-            patch.remove()
+        # Hide tick labels
+        self.view.getAxis("bottom").setStyle(showValues=False)
+        self.view.getAxis("left").setStyle(showValues=False)
+
+        # Hide tiny grid lines pointing to numbers (grid ticks)
+        self.view.getAxis("bottom").setTicks([([], [])])
+        self.view.getAxis("left").setTicks([([], [])])
+
+        # Maximize the window
+        self.win.showMaximized()
+
+        # Create a scatter plot with squares
+        # pen = (pg.mkPen(color=(255, 255, 255)),)  # White color
+        brush = pg.mkBrush(color=(255, 255, 255))
+        # brush = pg.mkBrush(color=(255, 255, 255, 255))  # Fully opaque white color
+        self.scatter = pg.ScatterPlotItem(pen=None, brush=brush, symbol="s")
+        self.view.addItem(self.scatter)
+
+        self.PIX_TO_M = 3779 * const.V_SCALLING
+
+    def update(self, trackbuffer):
+        # Clear previous items in the view
+        self.scatter.clear()
 
         for track in trackbuffer.effective_tracks:
             (center, rect_size) = calc_fade_square(track)
 
-            # Plot the filled square with updated center coordinates and alpha
-            square = Rectangle(
-                (center[0] - rect_size / 2, center[1] - rect_size / 2),
-                rect_size,
-                rect_size,
-                alpha=0.9,
-                color="black",
+            self.scatter.addPoints(
+                x=[center[0] - rect_size / 2],
+                y=[center[1] - rect_size / 2],
+                size=rect_size * self.PIX_TO_M,
             )
-            self.ax.add_patch(square)
 
-        plt.draw()
-        plt.pause(0.05)
+        # Update the view
+        QApplication.processEvents()

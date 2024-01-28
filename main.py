@@ -13,6 +13,13 @@ from Tracking import (
     TrackBuffer,
     BatchedData,
 )
+import cProfile
+import pstats
+
+import pyqtgraph as pg
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QTimer
+import sys
 
 OFFLINE = 0
 ONLINE = 1
@@ -53,6 +60,7 @@ def main():
         )
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
+    app = QApplication(sys.argv)
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
@@ -62,8 +70,9 @@ def main():
     batch = BatchedData()
 
     # Control loop
-    while True:
+    for i in range(500):
         try:
+            t0 = time.time()
             if const.ENABLE_MODE == OFFLINE:
                 # Offline mode
                 frame_count += 1
@@ -75,9 +84,10 @@ def main():
 
             else:
                 # Online mode
-                dataOk, _, detObj = IWR1443.read()
+                dataOk, frame, detObj = IWR1443.read()
 
             if dataOk:
+                # print(frame)
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 
@@ -105,17 +115,25 @@ def main():
                     # Update visualization graphs
                     visual.update(trackbuffer)
                     visual.draw()
+
+                # time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+                t_code = time.time() - t0
+                t_sleep = max(0, SLEEPTIME - t_code)
+                time.sleep(t_sleep)
             else:
                 trackbuffer.dt += SLEEPTIME
 
-            time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
-
         except KeyboardInterrupt:
-            plt.close()
+            # plt.close()
             if const.ENABLE_MODE == ONLINE:
                 del IWR1443
+                sys.exit(app.exec_())
             break
 
 
 if __name__ == "__main__":
-    main()
+    cProfile.run("main()", "perf_stats")
+
+    with open("profiling_results.txt", "w") as f:
+        p = pstats.Stats("perf_stats", stream=f)
+        p.sort_stats("cumulative").print_stats()

@@ -4,6 +4,7 @@ from scipy.linalg import block_diag
 
 OFFLINE = 0
 ONLINE = 1
+PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
@@ -18,17 +19,19 @@ P_CLASS = "no_luggage"
 
 ###### Scene Setup ######
 # Monitor Coordinates
-M_X: float = -0.6
+M_X: float = 0.03
 M_Y: float = -1
-M_Z: float = 0.6
+M_Z: float = 0.02
+M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]
 
 # Sensor
 S_HEIGHT = 1.7
 S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
-V_3D_AXIS = [3.0, 6.0, 2.0]
-V_SCREEN_FADE_SIZE_MAX: float = 0.5
+V_SCALLING = 1 / 8  # Scaling parameter (only for emulating)
+V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 6.0, M_SIZE[1] / V_SCALLING]
+V_SCREEN_FADE_SIZE_MAX: float = 0.4
 V_SCREEN_FADE_SIZE_MIN: float = 0.2
 V_SCREEN_FADE_WEIGHT: float = (
     0.08  # square size reduction (m) per 1 meter of distance from sensor
@@ -155,7 +158,7 @@ class CONST_VEL_MODEL:
 MOTION_MODEL = CONST_ACC_MODEL
 ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
 ENABLE_STATIC_CLUTTER = True
-SCREEN_CONNECTED = False
+SCREEN_CONNECTED = True
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)
