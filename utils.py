@@ -1,7 +1,42 @@
 from sklearn.cluster import DBSCAN
+from collections import deque
 import constants as const
 import math
 import numpy as np
+
+
+class RingBuffer:
+    def __init__(self, size, init_val=None):
+        self.size = size
+        self.buffer = deque(maxlen=size)
+        if init_val is None:
+            self.buffer.append(0)
+        else:
+            self.buffer.append(init_val)
+
+    def append(self, item):
+        self.buffer.append(item)
+
+    def get_max(self):
+        return np.max(self.buffer)
+
+    def get_mean(self):
+        return np.mean(self.buffer)
+
+
+def calc_projection_points(plane, y, vertical_plane=False):
+    y_dist = y - const.M_Y
+
+    if not vertical_plane:
+        x_dist = plane - const.M_X
+        x1 = -const.M_Y / (y_dist / x_dist)
+        screen_projection = x1 + const.M_X
+    else:
+        z_dist = plane - const.M_Z
+        z1 = -const.M_Y / (y_dist / z_dist)
+        screen_projection = z1 + const.M_Z
+
+    return screen_projection
 
 
 def altered_EuclideanDist(p1, p2):

@@ -21,7 +21,7 @@ P_CLASS = "no_luggage"
 # Monitor Coordinates
 M_X: float = 0.03
 M_Y: float = -1
-M_Z: float = 0.02
+M_Z: float = 1
 M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]
 
 # Sensor
@@ -45,6 +45,11 @@ FB_FRAMES_SKIP = 0
 FB_BUFFER_SIZE = 100
 FB_DT = 0.1
 
+# Number of frames per Batch
+FB_FRAMES_BATCH = 6
+FB_HEIGHT_FRAME_PERIOD = 40
+FB_WIDTH_FRAME_PERIOD = 20
+
 
 ####### Clustering #######
 # DBScan
@@ -55,10 +60,6 @@ DB_MIN_SAMPLES = 20
 
 DB_INNER_EPS = 0.5
 DB_INNER_MIN_SAMPLES = 10
-
-
-# Number of frames per Batch
-FB_FRAMES_BATCH = 6
 
 
 ###### Tracking and Kalman ######

@@ -15,10 +15,7 @@ from Tracking import (
 )
 import cProfile
 import pstats
-
-import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer
 import sys
 
 OFFLINE = 0
@@ -61,6 +58,7 @@ def main():
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
     app = QApplication(sys.argv)
+
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
@@ -87,7 +85,6 @@ def main():
                 dataOk, frame, detObj = IWR1443.read()
 
             if dataOk:
-                # print(frame)
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 

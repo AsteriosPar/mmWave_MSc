@@ -1,38 +1,14 @@
 import numpy as np
-import matplotlib
-
-matplotlib.use("TkAgg")
-
 import matplotlib.pyplot as plt
 import constants as const
-from constants import M_X, M_Y, M_Z
 from Tracking import TrackBuffer, ClusterTrack
+from utils import calc_projection_points
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
 from matplotlib.patches import Rectangle
 
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QTimer, Qt
-import sys
-from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import QGraphicsRectItem
-
-
-def calc_projection_points(x, y, z=None):
-    y_dist = y - M_Y
-    z_screen = None
-
-    x_dist = x - M_X
-    x1 = -M_Y / (y_dist / x_dist)
-    x_screen = x1 + M_X
-
-    if z is not None:
-        z_dist = z - M_Z
-        z1 = -M_Y / (y_dist / z_dist)
-        z_screen = z1 + M_Z
-
-    return (x_screen, z_screen)
 
 
 def calc_fade_square(track: ClusterTrack):
@@ -43,19 +19,12 @@ def calc_fade_square(track: ClusterTrack):
             track.state.inst.x[2],
         ]
     ).flatten()
-    center = calc_projection_points(
-        x=coords[0], y=coords[1], z=const.V_BBOX_EYESIGHT_HEIGHT
-    )
-    x_screen_min, _ = calc_projection_points(
-        x=track.cluster.min_vals[0], y=track.cluster.min_vals[1]
-    )  # We choose min vals of y for Worst Case Scenario
-    x_screen_max, _ = calc_projection_points(
-        x=track.cluster.max_vals[0], y=track.cluster.min_vals[1]
-    )
-    rect_width_min = x_screen_max - x_screen_min
+    center_x = calc_projection_points(plane=coords[0], y=coords[1])
+    center_y = track.height_buffer.get_mean()
+    center = [center_x, center_y]
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
-        rect_width_min,
+        track.width_buffer.get_max(),
         min(
             const.V_SCREEN_FADE_SIZE_MAX,
             const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
@@ -324,17 +293,17 @@ class ScreenAdapter:
             yRange=(0, const.V_3D_AXIS[2]),
         )
 
-        # Hide grid lines by adjusting the appearance of the axis
-        self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
-        self.view.getAxis("left").setPen(pg.mkPen(color=(255, 255, 255, 0)))
+        # # Hide grid lines by adjusting the appearance of the axis
+        # self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
+        # self.view.getAxis("left").setPen(pg.mkPen(color=(255, 255, 255, 0)))
 
-        # Hide tick labels
-        self.view.getAxis("bottom").setStyle(showValues=False)
-        self.view.getAxis("left").setStyle(showValues=False)
+        # # Hide tick labels
+        # self.view.getAxis("bottom").setStyle(showValues=False)
+        # self.view.getAxis("left").setStyle(showValues=False)
 
-        # Hide tiny grid lines pointing to numbers (grid ticks)
-        self.view.getAxis("bottom").setTicks([([], [])])
-        self.view.getAxis("left").setTicks([([], [])])
+        # # Hide tiny grid lines pointing to numbers (grid ticks)
+        # self.view.getAxis("bottom").setTicks([([], [])])
+        # self.view.getAxis("left").setTicks([([], [])])
 
         # Maximize the window
         self.win.showMaximized()
@@ -353,12 +322,18 @@ class ScreenAdapter:
         self.scatter.clear()
 
         for track in trackbuffer.effective_tracks:
-            (center, rect_size) = calc_fade_square(track)
+            center, rect_size = calc_fade_square(track)
 
             self.scatter.addPoints(
                 x=[center[0] - rect_size / 2],
                 y=[center[1] - rect_size / 2],
                 size=rect_size * self.PIX_TO_M,
+            )
+
+            self.scatter.addPoints(
+                x=[1],
+                y=[1],
+                size=100,
             )
 
         # Update the view
