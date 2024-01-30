@@ -1,6 +1,7 @@
 import numpy as np
 import constants as const
 import math
+import time
 from filterpy.kalman import KalmanFilter
 from utils import apply_DBscan, RingBuffer, calc_projection_points
 from typing import List
@@ -306,17 +307,17 @@ class ClusterTrack:
         # Save the current height and width of the pointcloud projection to the screen in the ringbuffers.
         self.height_buffer.append(
             calc_projection_points(
-                plane=self.cluster.max_vals[2] - 0.01,
+                value=self.cluster.max_vals[2] - 0.01,
                 y=self.cluster.min_vals[1],
-                vertical_plane=True,
+                vertical_axis=True,
             )
         )
         self.width_buffer.append(
             calc_projection_points(
-                plane=self.cluster.max_vals[0], y=self.cluster.min_vals[1]
+                value=self.cluster.max_vals[0], y=self.cluster.min_vals[1]
             )
             - calc_projection_points(
-                plane=self.cluster.min_vals[0], y=self.cluster.min_vals[1]
+                value=self.cluster.min_vals[0], y=self.cluster.min_vals[1]
             )
         )
 
@@ -455,6 +456,7 @@ class TrackBuffer:
         self.tracks: List[ClusterTrack] = []
         self.effective_tracks: List[ClusterTrack] = []
         self.dt = 0
+        self.t = time.time()
 
     def update_status(self):
         """

@@ -68,7 +68,7 @@ def main():
     batch = BatchedData()
 
     # Control loop
-    for i in range(500):
+    while True:
         try:
             t0 = time.time()
             if const.ENABLE_MODE == OFFLINE:
@@ -85,6 +85,10 @@ def main():
                 dataOk, frame, detObj = IWR1443.read()
 
             if dataOk:
+                # print(time.time() - time_init)
+                now = time.time()
+                trackbuffer.dt = now - trackbuffer.t
+                trackbuffer.t = now
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 
@@ -101,14 +105,12 @@ def main():
                     else:
                         trackbuffer.track(effective_data, batch)
 
-                    trackbuffer.dt = 0
-
                 if const.SCREEN_CONNECTED:
                     visual.update(trackbuffer)
                 else:
                     visual.clear()
                     # update the raw data scatter plot
-                    visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                    # visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                     # Update visualization graphs
                     visual.update(trackbuffer)
                     visual.draw()
@@ -117,20 +119,27 @@ def main():
                 t_code = time.time() - t0
                 t_sleep = max(0, SLEEPTIME - t_code)
                 time.sleep(t_sleep)
-            else:
-                trackbuffer.dt += SLEEPTIME
+            # else:
+            #     t_code = time.time() - t0
+            #     trackbuffer.dt += SLEEPTIME
+            #     trackbuffer.dt += SLEEPTIME
+            #     t_sleep = max(0, SLEEPTIME - t_code)
+
+            # time.sleep(t_sleep)
 
         except KeyboardInterrupt:
             # plt.close()
             if const.ENABLE_MODE == ONLINE:
                 del IWR1443
-                sys.exit(app.exec_())
             break
 
 
 if __name__ == "__main__":
-    cProfile.run("main()", "perf_stats")
+    if not const.ENABLE_MODE == ONLINE:
+        main()
+    else:
+        cProfile.run("main()", "perf_stats")
 
-    with open("profiling_results.txt", "w") as f:
-        p = pstats.Stats("perf_stats", stream=f)
-        p.sort_stats("cumulative").print_stats()
+        with open("profiling_results.txt", "w") as f:
+            p = pstats.Stats("perf_stats", stream=f)
+            p.sort_stats("cumulative").print_stats()

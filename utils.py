@@ -24,15 +24,19 @@ class RingBuffer:
         return np.mean(self.buffer)
 
 
-def calc_projection_points(plane, y, vertical_plane=False):
+def calc_projection_points(value, y, vertical_axis=False):
     y_dist = y - const.M_Y
 
-    if not vertical_plane:
-        x_dist = plane - const.M_X
+    if not vertical_axis:
+        x_dist = value - const.M_X
+        if x_dist == 0:
+            return value
         x1 = -const.M_Y / (y_dist / x_dist)
         screen_projection = x1 + const.M_X
     else:
-        z_dist = plane - const.M_Z
+        z_dist = value - const.M_Z
+        if z_dist == 0:
+            return value
         z1 = -const.M_Y / (y_dist / z_dist)
         screen_projection = z1 + const.M_Z
 

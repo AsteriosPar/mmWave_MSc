@@ -9,6 +9,7 @@ from matplotlib.patches import Rectangle
 
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QColor
 
 
 def calc_fade_square(track: ClusterTrack):
@@ -19,7 +20,7 @@ def calc_fade_square(track: ClusterTrack):
             track.state.inst.x[2],
         ]
     ).flatten()
-    center_x = calc_projection_points(plane=coords[0], y=coords[1])
+    center_x = calc_projection_points(value=coords[0], y=coords[1])
     center_y = track.height_buffer.get_mean()
     center = [center_x, center_y]
     rect_size = max(
@@ -67,25 +68,25 @@ class Visualizer:
         # Add legend
         self.ax.legend(handles=legend_handles)
 
-        # Plot window surface
-        rect_height = axis_3d[2]
-        vertices = [
-            (-axis_3d[0] / 2, 0, 0),
-            (-axis_3d[0] / 2, 0, rect_height),
-            (axis_3d[0] / 2, 0, rect_height),
-            (axis_3d[0] / 2, 0, 0),
-        ]
-        rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
-        self.ax.add_collection3d(rectangle)
+        # # Plot window surface
+        # rect_height = axis_3d[2]
+        # vertices = [
+        #     (-axis_3d[0] / 2, 0, 0),
+        #     (-axis_3d[0] / 2, 0, rect_height),
+        #     (axis_3d[0] / 2, 0, rect_height),
+        #     (axis_3d[0] / 2, 0, 0),
+        # ]
+        # rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
+        # self.ax.add_collection3d(rectangle)
 
-        # Plot monitor position
-        center = (const.M_X, const.M_Y, const.M_Z)
-        radius = 0.1
-        phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
-        x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
-        y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
-        z_sphere = center[2] + radius * np.cos(theta)
-        self.ax.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
+        # # Plot monitor position
+        # center = (const.M_X, const.M_Y, const.M_Z)
+        # radius = 0.1
+        # phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
+        # x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
+        # y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
+        # z_sphere = center[2] + radius * np.cos(theta)
+        # self.ax.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
@@ -190,7 +191,7 @@ class Visualizer:
                 self.dynamic_art.append(
                     self._draw_bounding_box(track.cluster.centroid, color="green")
                 )
-            self.dynamic_art.append(self.draw_fading_window(track))
+            # self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot
         self.scatter = self.ax.scatter(x_all, y_all, z_all, c=color_all, marker="o")
@@ -200,7 +201,7 @@ class Visualizer:
 
     def draw(self):
         plt.draw()
-        plt.pause(0.05)  # Pause for a short time to allow for updating
+        plt.pause(0.001)  # Pause for a short time to allow for updating
 
 
 # class ScreenAdapter:
@@ -242,56 +243,18 @@ class Visualizer:
 #         plt.pause(0.01)
 
 
-# class ScreenAdapter:
-#     def __init__(self):
-#         # Create the PyQtGraph window
-#         self.win = pg.GraphicsLayoutWidget()
-#         self.view = self.win.addPlot()
-#         self.view.setAspectLocked()
-#         self.view.setRange(
-#             xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
-#             yRange=(0, const.V_3D_AXIS[2]),
-#         )
-
-#         # Maximize the window
-#         self.win.showMaximized()
-
-#     def update(self, trackbuffer):
-#         # Clear previous items in the view
-#         self.view.clear()
-
-#         for track in trackbuffer.effective_tracks:
-#             (center, rect_size) = calc_fade_square(track)
-
-#             # Create a white square
-#             square = pg.RectROI(
-#                 [center[0] - rect_size / 2, center[1] - rect_size / 2],
-#                 [rect_size, rect_size],
-#                 pen={"color": "w"},
-#             )
-
-#             # Add the RectROI to the view and store in the list
-#             self.view.addItem(square)
-
-#             fill_item = QGraphicsRectItem(square.boundingRect())
-#             brush_color = QBrush(QColor(0, 0, 255, 100))
-#             fill_item.setBrush(brush_color)
-#             square.addMarker(fill_item, 0, 0)
-
-#         # Update the view
-#         QApplication.processEvents()
-
-
 class ScreenAdapter:
     def __init__(self):
         # Create the PyQtGraph window
         self.win = pg.GraphicsLayoutWidget()
         self.view = self.win.addPlot()
         self.view.setAspectLocked()
+        self.view.getViewBox().setBackgroundColor((255, 255, 255))
         self.view.setRange(
             xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
-            yRange=(0, const.V_3D_AXIS[2]),
+            yRange=(const.M_HEIGHT, const.V_3D_AXIS[2]),
         )
+        self.view.invertX()
 
         # # Hide grid lines by adjusting the appearance of the axis
         # self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
@@ -310,7 +273,7 @@ class ScreenAdapter:
 
         # Create a scatter plot with squares
         # pen = (pg.mkPen(color=(255, 255, 255)),)  # White color
-        brush = pg.mkBrush(color=(255, 255, 255))
+        brush = pg.mkBrush(color=(0, 0, 0))
         # brush = pg.mkBrush(color=(255, 255, 255, 255))  # Fully opaque white color
         self.scatter = pg.ScatterPlotItem(pen=None, brush=brush, symbol="s")
         self.view.addItem(self.scatter)
