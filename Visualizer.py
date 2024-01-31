@@ -256,18 +256,6 @@ class ScreenAdapter:
         )
         self.view.invertX()
 
-        # # Hide grid lines by adjusting the appearance of the axis
-        # self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
-        # self.view.getAxis("left").setPen(pg.mkPen(color=(255, 255, 255, 0)))
-
-        # # Hide tick labels
-        # self.view.getAxis("bottom").setStyle(showValues=False)
-        # self.view.getAxis("left").setStyle(showValues=False)
-
-        # # Hide tiny grid lines pointing to numbers (grid ticks)
-        # self.view.getAxis("bottom").setTicks([([], [])])
-        # self.view.getAxis("left").setTicks([([], [])])
-
         # Maximize the window
         self.win.showMaximized()
 
@@ -291,12 +279,6 @@ class ScreenAdapter:
                 x=[center[0] - rect_size / 2],
                 y=[center[1] - rect_size / 2],
                 size=rect_size * self.PIX_TO_M,
-            )
-
-            self.scatter.addPoints(
-                x=[1],
-                y=[1],
-                size=100,
             )
 
         # Update the view

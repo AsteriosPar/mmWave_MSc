@@ -49,7 +49,7 @@ def main():
                     }
 
         frame_count = 0
-        SLEEPTIME = 0.1  # config "frameCfg"
+        SLEEPTIME = 0.083  # config "frameCfg"
 
     else:
         IWR1443 = ReadIWR14xx(
@@ -78,6 +78,8 @@ def main():
                     dataOk = True
                     detObj = pointclouds[frame_count]
                 else:
+                    t_code = time.time() - t0
+                    time.sleep(max(0, SLEEPTIME - t_code))
                     dataOk = False
 
             else:
@@ -135,11 +137,11 @@ def main():
 
 
 if __name__ == "__main__":
-    if not const.ENABLE_MODE == ONLINE:
-        main()
-    else:
-        cProfile.run("main()", "perf_stats")
+    # if not const.ENABLE_MODE == ONLINE:
+    main()
+# else:
+#     cProfile.run("main()", "perf_stats")
 
-        with open("profiling_results.txt", "w") as f:
-            p = pstats.Stats("perf_stats", stream=f)
-            p.sort_stats("cumulative").print_stats()
+#     with open("profiling_results.txt", "w") as f:
+#         p = pstats.Stats("perf_stats", stream=f)
+#         p.sort_stats("cumulative").print_stats()

@@ -12,8 +12,8 @@ P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
-P_EXPERIMENT_FILE_READ = "resolution_check.csv"
-P_EXPERIMENT_FILE_WRITE = "circular_resolution_check.csv"
+P_EXPERIMENT_FILE_READ = "test2.csv"
+P_EXPERIMENT_FILE_WRITE = "test2.csv"
 P_CLASS = "no_luggage"
 
 
@@ -62,7 +62,7 @@ DB_EPS = 0.1
 DB_MIN_SAMPLES = 30
 
 DB_INNER_EPS = 0.1
-DB_INNER_MIN_SAMPLES = 20
+DB_INNER_MIN_SAMPLES = 25
 
 
 ###### Tracking and Kalman ######
@@ -73,8 +73,8 @@ TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 5
 
 # Kalman
-KF_R_STD = 250
-KF_Q_STD = 10
+KF_R_STD = 1000
+KF_Q_STD = 0.01
 
 # Initialization values
 KF_P_INIT = 0.001
@@ -84,7 +84,7 @@ KF_GROUP_DISP_EST_INIT = 0.001
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
-KF_SPREAD_LIM = [0.7, 0.7, 2, 1.4, 1.4, 1.2]  # Revise
+KF_SPREAD_LIM = [0.3, 0.3, 2, 1.4, 1.4, 1.2]  # Revise
 KF_A_SPR = 0.9  # Revise
 
 
@@ -162,7 +162,7 @@ class CONST_VEL_MODEL:
 MOTION_MODEL = CONST_ACC_MODEL
 ENABLE_MODE = ONLINE  # OFFLINE / ONLINE
 ENABLE_STATIC_CLUTTER = True
-SCREEN_CONNECTED = True
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)
