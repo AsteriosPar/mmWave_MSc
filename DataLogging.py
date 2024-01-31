@@ -50,15 +50,16 @@ def data_log_mode():
     )
     SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
-    figure = Visualizer()
+    # figure = Visualizer()
 
     # Control loop
     while True:
         try:
+            t0 = time.time()
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk:
-                figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
-                figure.draw()
+                # figure.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                # figure.draw()
 
                 if frame_count % (const.FB_FRAMES_SKIP + 1) == 0:
                     # Prepare data for logging
@@ -87,9 +88,13 @@ def data_log_mode():
 
                 frame_count += 1
 
-            time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+            # time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+            t_code = time.time() - t0
+            t_sleep = max(0, SLEEPTIME - t_code)
+            time.sleep(t_sleep)
+
         except KeyboardInterrupt:
-            plt.close()
+            # plt.close()
             data_buffer.to_csv(
                 data_path,
                 mode="a",

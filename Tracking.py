@@ -1,8 +1,9 @@
 import numpy as np
 import constants as const
 import math
+import time
 from filterpy.kalman import KalmanFilter
-from utils import apply_DBscan
+from utils import apply_DBscan, RingBuffer, calc_projection_points
 from typing import List
 
 ACTIVE = 1
@@ -208,6 +209,10 @@ class ClusterTrack:
         self.color = np.random.rand(
             3,
         )
+        self.height_buffer = RingBuffer(
+            const.FB_HEIGHT_FRAME_PERIOD, init_val=self.cluster.max_vals[2] - 0.01
+        )
+        self.width_buffer = RingBuffer(const.FB_WIDTH_FRAME_PERIOD)
         # NOTE: For visualizing purposes only
         self.predict_x = self.state.inst.x
 
@@ -298,6 +303,23 @@ class ClusterTrack:
         self._estimate_point_num()
         self._estimate_measurement_spread()
         self._estimate_group_disp_matrix()
+
+        # Save the current height and width of the pointcloud projection to the screen in the ringbuffers.
+        self.height_buffer.append(
+            calc_projection_points(
+                value=self.cluster.max_vals[2] - 0.01,
+                y=self.cluster.min_vals[1],
+                vertical_axis=True,
+            )
+        )
+        self.width_buffer.append(
+            calc_projection_points(
+                value=self.cluster.max_vals[0], y=self.cluster.min_vals[1]
+            )
+            - calc_projection_points(
+                value=self.cluster.min_vals[0], y=self.cluster.min_vals[1]
+            )
+        )
 
     def get_Rm(self):
         """
@@ -434,6 +456,7 @@ class TrackBuffer:
         self.tracks: List[ClusterTrack] = []
         self.effective_tracks: List[ClusterTrack] = []
         self.dt = 0
+        self.t = time.time()
 
     def update_status(self):
         """

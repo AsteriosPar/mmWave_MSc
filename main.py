@@ -13,6 +13,10 @@ from Tracking import (
     TrackBuffer,
     BatchedData,
 )
+import cProfile
+import pstats
+from PyQt5.QtWidgets import QApplication
+import sys
 
 OFFLINE = 0
 ONLINE = 1
@@ -53,6 +57,8 @@ def main():
         )
         SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
+    app = QApplication(sys.argv)
+
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
@@ -64,6 +70,7 @@ def main():
     # Control loop
     while True:
         try:
+            t0 = time.time()
             if const.ENABLE_MODE == OFFLINE:
                 # Offline mode
                 frame_count += 1
@@ -75,9 +82,13 @@ def main():
 
             else:
                 # Online mode
-                dataOk, _, detObj = IWR1443.read()
+                dataOk, frame, detObj = IWR1443.read()
 
             if dataOk:
+                # print(time.time() - time_init)
+                now = time.time()
+                trackbuffer.dt = now - trackbuffer.t
+                trackbuffer.t = now
                 # Apply scene constraints, translation and static clutter removal
                 effective_data = preprocess_data(detObj)
 
@@ -94,28 +105,41 @@ def main():
                     else:
                         trackbuffer.track(effective_data, batch)
 
-                    trackbuffer.dt = 0
-
                 if const.SCREEN_CONNECTED:
                     visual.update(trackbuffer)
                 else:
                     visual.clear()
                     # update the raw data scatter plot
-                    visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                    # visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                     # Update visualization graphs
                     visual.update(trackbuffer)
                     visual.draw()
-            else:
-                trackbuffer.dt += SLEEPTIME
 
-            time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+                # time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
+                t_code = time.time() - t0
+                t_sleep = max(0, SLEEPTIME - t_code)
+                time.sleep(t_sleep)
+            # else:
+            #     t_code = time.time() - t0
+            #     trackbuffer.dt += SLEEPTIME
+            #     trackbuffer.dt += SLEEPTIME
+            #     t_sleep = max(0, SLEEPTIME - t_code)
+
+            # time.sleep(t_sleep)
 
         except KeyboardInterrupt:
-            plt.close()
+            # plt.close()
             if const.ENABLE_MODE == ONLINE:
                 del IWR1443
             break
 
 
 if __name__ == "__main__":
-    main()
+    if not const.ENABLE_MODE == ONLINE:
+        main()
+    else:
+        cProfile.run("main()", "perf_stats")
+
+        with open("profiling_results.txt", "w") as f:
+            p = pstats.Stats("perf_stats", stream=f)
+            p.sort_stats("cumulative").print_stats()

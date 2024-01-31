@@ -1,7 +1,46 @@
 from sklearn.cluster import DBSCAN
+from collections import deque
 import constants as const
 import math
 import numpy as np
+
+
+class RingBuffer:
+    def __init__(self, size, init_val=None):
+        self.size = size
+        self.buffer = deque(maxlen=size)
+        if init_val is None:
+            self.buffer.append(0)
+        else:
+            self.buffer.append(init_val)
+
+    def append(self, item):
+        self.buffer.append(item)
+
+    def get_max(self):
+        return np.max(self.buffer)
+
+    def get_mean(self):
+        return np.mean(self.buffer)
+
+
+def calc_projection_points(value, y, vertical_axis=False):
+    y_dist = y - const.M_Y
+
+    if not vertical_axis:
+        x_dist = value - const.M_X
+        if x_dist == 0:
+            return value
+        x1 = -const.M_Y / (y_dist / x_dist)
+        screen_projection = x1 + const.M_X
+    else:
+        z_dist = value - const.M_Z
+        if z_dist == 0:
+            return value
+        z1 = -const.M_Y / (y_dist / z_dist)
+        screen_projection = z1 + const.M_Z
+
+    return screen_projection
 
 
 def altered_EuclideanDist(p1, p2):
@@ -105,9 +144,7 @@ def preprocess_data(detObj):
         - Cartesian velocity along the z-axis
 
     """
-    input_data = np.column_stack(
-        (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])
-    )
+    input_data = np.vstack((detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])).T
 
     ef_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
 

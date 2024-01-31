@@ -1,27 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import constants as const
-from constants import M_X, M_Y, M_Z
 from Tracking import TrackBuffer, ClusterTrack
+from utils import calc_projection_points
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
 from matplotlib.patches import Rectangle
 
-
-def calc_projection_points(x, y, z=None):
-    y_dist = y - M_Y
-    z_screen = None
-
-    x_dist = x - M_X
-    x1 = -M_Y / (y_dist / x_dist)
-    x_screen = x1 + M_X
-
-    if z is not None:
-        z_dist = z - M_Z
-        z1 = -M_Y / (y_dist / z_dist)
-        z_screen = z1 + M_Z
-
-    return (x_screen, z_screen)
+import pyqtgraph as pg
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QColor
 
 
 def calc_fade_square(track: ClusterTrack):
@@ -32,19 +20,12 @@ def calc_fade_square(track: ClusterTrack):
             track.state.inst.x[2],
         ]
     ).flatten()
-    center = calc_projection_points(
-        x=coords[0], y=coords[1], z=const.V_BBOX_EYESIGHT_HEIGHT
-    )
-    x_screen_min, _ = calc_projection_points(
-        x=track.cluster.min_vals[0], y=track.cluster.min_vals[1]
-    )  # We choose min vals of y for Worst Case Scenario
-    x_screen_max, _ = calc_projection_points(
-        x=track.cluster.max_vals[0], y=track.cluster.min_vals[1]
-    )
-    rect_width_min = x_screen_max - x_screen_min
+    center_x = calc_projection_points(value=coords[0], y=coords[1])
+    center_y = track.height_buffer.get_mean()
+    center = [center_x, center_y]
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
-        rect_width_min,
+        track.width_buffer.get_max(),
         min(
             const.V_SCREEN_FADE_SIZE_MAX,
             const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
@@ -87,25 +68,25 @@ class Visualizer:
         # Add legend
         self.ax.legend(handles=legend_handles)
 
-        # Plot window surface
-        rect_height = axis_3d[2]
-        vertices = [
-            (-axis_3d[0] / 2, 0, 0),
-            (-axis_3d[0] / 2, 0, rect_height),
-            (axis_3d[0] / 2, 0, rect_height),
-            (axis_3d[0] / 2, 0, 0),
-        ]
-        rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
-        self.ax.add_collection3d(rectangle)
+        # # Plot window surface
+        # rect_height = axis_3d[2]
+        # vertices = [
+        #     (-axis_3d[0] / 2, 0, 0),
+        #     (-axis_3d[0] / 2, 0, rect_height),
+        #     (axis_3d[0] / 2, 0, rect_height),
+        #     (axis_3d[0] / 2, 0, 0),
+        # ]
+        # rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
+        # self.ax.add_collection3d(rectangle)
 
-        # Plot monitor position
-        center = (const.M_X, const.M_Y, const.M_Z)
-        radius = 0.1
-        phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
-        x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
-        y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
-        z_sphere = center[2] + radius * np.cos(theta)
-        self.ax.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
+        # # Plot monitor position
+        # center = (const.M_X, const.M_Y, const.M_Z)
+        # radius = 0.1
+        # phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
+        # x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
+        # y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
+        # z_sphere = center[2] + radius * np.cos(theta)
+        # self.ax.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
 
         plt.show(block=False)  # Set block=False to allow continuing execution
 
@@ -210,7 +191,7 @@ class Visualizer:
                 self.dynamic_art.append(
                     self._draw_bounding_box(track.cluster.centroid, color="green")
                 )
-            self.dynamic_art.append(self.draw_fading_window(track))
+            # self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot
         self.scatter = self.ax.scatter(x_all, y_all, z_all, c=color_all, marker="o")
@@ -220,42 +201,103 @@ class Visualizer:
 
     def draw(self):
         plt.draw()
-        plt.pause(0.05)  # Pause for a short time to allow for updating
+        plt.pause(0.001)  # Pause for a short time to allow for updating
+
+
+# class ScreenAdapter:
+#     def __init__(self):
+#         plt.switch_backend("Qt5Agg")
+
+#         # Create a figure with a transparent background
+#         self.fig, self.ax = plt.subplots(
+#             figsize=(10, 8), frameon=False, facecolor="none"
+#         )
+#         self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
+#         self.ax.set_ylim(0, const.V_3D_AXIS[2])
+#         self.ax.set_axis_off()
+
+#         # Maximize the figure window
+#         figManager = plt.get_current_fig_manager()
+#         figManager.window.showMaximized()
+
+#     def update(self, trackbuffer: TrackBuffer):
+#         # Update the square in the 2D plot
+#         for patch in self.ax.patches:
+#             patch.remove()
+
+#         for track in trackbuffer.effective_tracks:
+#             (center, rect_size) = calc_fade_square(track)
+
+#             # Plot the filled square with updated center coordinates and alpha
+#             square = Rectangle(
+#                 (center[0] - rect_size / 2, center[1] - rect_size / 2),
+#                 rect_size,
+#                 rect_size,
+#                 alpha=0.9,
+#                 color="black",
+#             )
+#             self.ax.add_patch(square)
+
+#         plt.draw()
+#         plt.show(block=False)
+#         plt.pause(0.01)
 
 
 class ScreenAdapter:
     def __init__(self):
-        plt.switch_backend("Qt5Agg")
-
-        # Create a figure with a transparent background
-        self.fig, self.ax = plt.subplots(
-            figsize=(10, 8), frameon=False, facecolor="none"
+        # Create the PyQtGraph window
+        self.win = pg.GraphicsLayoutWidget()
+        self.view = self.win.addPlot()
+        self.view.setAspectLocked()
+        self.view.getViewBox().setBackgroundColor((255, 255, 255))
+        self.view.setRange(
+            xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
+            yRange=(const.M_HEIGHT, const.V_3D_AXIS[2]),
         )
-        self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
-        self.ax.set_ylim(0, const.V_3D_AXIS[2])
-        self.ax.set_axis_off()
+        self.view.invertX()
 
-        # Maximize the figure window
-        figManager = plt.get_current_fig_manager()
-        figManager.window.showMaximized()
+        # # Hide grid lines by adjusting the appearance of the axis
+        # self.view.getAxis("bottom").setPen(pg.mkPen(color=(255, 255, 255, 0)))
+        # self.view.getAxis("left").setPen(pg.mkPen(color=(255, 255, 255, 0)))
 
-    def update(self, trackbuffer: TrackBuffer):
-        # Update the square in the 2D plot
-        for patch in self.ax.patches:
-            patch.remove()
+        # # Hide tick labels
+        # self.view.getAxis("bottom").setStyle(showValues=False)
+        # self.view.getAxis("left").setStyle(showValues=False)
+
+        # # Hide tiny grid lines pointing to numbers (grid ticks)
+        # self.view.getAxis("bottom").setTicks([([], [])])
+        # self.view.getAxis("left").setTicks([([], [])])
+
+        # Maximize the window
+        self.win.showMaximized()
+
+        # Create a scatter plot with squares
+        # pen = (pg.mkPen(color=(255, 255, 255)),)  # White color
+        brush = pg.mkBrush(color=(0, 0, 0))
+        # brush = pg.mkBrush(color=(255, 255, 255, 255))  # Fully opaque white color
+        self.scatter = pg.ScatterPlotItem(pen=None, brush=brush, symbol="s")
+        self.view.addItem(self.scatter)
+
+        self.PIX_TO_M = 3779 * const.V_SCALLING
+
+    def update(self, trackbuffer):
+        # Clear previous items in the view
+        self.scatter.clear()
 
         for track in trackbuffer.effective_tracks:
-            (center, rect_size) = calc_fade_square(track)
+            center, rect_size = calc_fade_square(track)
 
-            # Plot the filled square with updated center coordinates and alpha
-            square = Rectangle(
-                (center[0] - rect_size / 2, center[1] - rect_size / 2),
-                rect_size,
-                rect_size,
-                alpha=0.9,
-                color="black",
+            self.scatter.addPoints(
+                x=[center[0] - rect_size / 2],
+                y=[center[1] - rect_size / 2],
+                size=rect_size * self.PIX_TO_M,
             )
-            self.ax.add_patch(square)
 
-        plt.draw()
-        plt.pause(0.05)
+            self.scatter.addPoints(
+                x=[1],
+                y=[1],
+                size=100,
+            )
+
+        # Update the view
+        QApplication.processEvents()
