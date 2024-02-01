@@ -22,7 +22,7 @@ ONLINE = 1
 
 
 def main():
-    if const.ENABLE_MODE == OFFLINE:
+    if const.SYSTEM_MODE == OFFLINE:
         experiment_path = os.path.join(const.P_LOG_PATH, const.P_EXPERIMENT_FILE_READ)
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
@@ -53,7 +53,7 @@ def main():
     while True:
         try:
             t0 = time.time()
-            if const.ENABLE_MODE == OFFLINE:
+            if const.SYSTEM_MODE == OFFLINE:
                 # Offline mode
                 frame_count += 1
                 # If the read buffer is parsed, read more frames from the experiment file
@@ -106,7 +106,7 @@ def main():
                 time.sleep(t_sleep)
 
         except KeyboardInterrupt:
-            if const.ENABLE_MODE == ONLINE:
+            if const.SYSTEM_MODE == ONLINE:
                 del IWR1443
             break
 
