@@ -10,6 +10,7 @@ PIXEL_TO_METERS = 0.000265
 P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
 P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
+P_PROFILING_PATH = "./profiling/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 P_EXPERIMENT_FILE_READ = "test2.csv"
@@ -19,24 +20,24 @@ P_CLASS = "no_luggage"
 
 ###### Scene Setup ######
 # Monitor Coordinates
-M_X: float = 0
-M_Y: float = -4
-M_Z: float = 0.5
-M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
+M_X: float = 0.08
+M_Y: float = -0.42
+M_Z: float = 1.5
+# M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
 # M_SIZE = [3840 * PIXEL_TO_METERS, 2160 * PIXEL_TO_METERS]  # Monitor
-# M_SIZE = [1.6, 0.9]  # Monitor
+M_SIZE = [1.6, 0.9]  # Monitor Approximation
 
-M_HEIGHT = 0.4
+M_HEIGHT = 0.8
 
 # Sensor
-S_HEIGHT = 1
-S_TILT = -10  # degrees (-180, 180)
+S_HEIGHT = 1.6
+S_TILT = -17  # degrees (-180, 180)
 
 # Plot Parameters
-V_SCALLING = 1 / 6  # Scaling parameter (only for emulating)
+V_SCALLING = 1 / 1  # Scaling parameter (only for emulating)
 V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 4.0, M_HEIGHT + (M_SIZE[1] / V_SCALLING)]
-V_SCREEN_FADE_SIZE_MAX: float = 0.2
-V_SCREEN_FADE_SIZE_MIN: float = 0.05
+V_SCREEN_FADE_SIZE_MAX: float = 0.3
+V_SCREEN_FADE_SIZE_MIN: float = 0.12
 V_SCREEN_FADE_WEIGHT: float = (
     0.08  # square size reduction (m) per 1 meter of distance from sensor
 )
@@ -46,7 +47,9 @@ V_BBOX_EYESIGHT_HEIGHT = 1.75
 
 ###### Frames and Buffering #######
 FB_FRAMES_SKIP = 0
-FB_BUFFER_SIZE = 100
+FB_WRITE_BUFFER_SIZE = 100
+FB_READ_BUFFER_SIZE = 100
+
 
 # Number of frames per Batch
 FB_FRAMES_BATCH = 6
@@ -59,10 +62,10 @@ FB_WIDTH_FRAME_PERIOD = 20
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.01
 DB_EPS = 0.1
-DB_MIN_SAMPLES = 30
+DB_MIN_SAMPLES = 23
 
 DB_INNER_EPS = 0.1
-DB_INNER_MIN_SAMPLES = 25
+DB_INNER_MIN_SAMPLES = 23
 
 
 ###### Tracking and Kalman ######
@@ -73,18 +76,18 @@ TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 5
 
 # Kalman
-KF_R_STD = 1000
+KF_R_STD = 100
 KF_Q_STD = 0.01
 
 # Initialization values
 KF_P_INIT = 0.001
-KF_GROUP_DISP_EST_INIT = 0.001
+KF_GROUP_DISP_EST_INIT = 0.1
 
 # Kalman estimation parameters
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
-KF_SPREAD_LIM = [0.3, 0.3, 2, 1.4, 1.4, 1.2]  # Revise
+KF_SPREAD_LIM = [0.3, 0.3, 2, 0.8, 0.8, 0.2]  # Revise
 KF_A_SPR = 0.9  # Revise
 
 
@@ -160,7 +163,8 @@ class CONST_VEL_MODEL:
 
 
 MOTION_MODEL = CONST_ACC_MODEL
-ENABLE_MODE = ONLINE  # OFFLINE / ONLINE
+PROFILING = False
+ENABLE_MODE = OFFLINE  # OFFLINE / ONLINE
 ENABLE_STATIC_CLUTTER = True
 SCREEN_CONNECTED = False
 

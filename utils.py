@@ -2,10 +2,35 @@ from sklearn.cluster import DBSCAN
 from collections import deque
 import constants as const
 import math
+import csv
 import numpy as np
 
 
 class RingBuffer:
+    """
+    Circular buffer with a fixed size that automatically discards the oldest elements
+    when new elements are added.
+
+    Attributes
+    ----------
+    size : int
+        Maximum size of the buffer.
+
+    buffer : collections.deque
+        Deque representing the circular buffer.
+
+    Methods
+    -------
+    append(item)
+        Add a new element to the buffer. If the buffer is full, the oldest element is removed.
+
+    get_max()
+        Get the maximum value in the buffer.
+
+    get_mean()
+        Get the mean value of the elements in the buffer.
+    """
+
     def __init__(self, size, init_val=None):
         self.size = size
         self.buffer = deque(maxlen=size)
@@ -24,7 +49,81 @@ class RingBuffer:
         return np.mean(self.buffer)
 
 
+def read_next_frames(experiment_path, start=0):
+    """
+    Read the next batch of frames from the given experiment file starting from the specified frame number.
+
+    Parameters
+    ----------
+    experiment_path : str
+        The path to the CSV file containing the experiment data.
+
+    start : int, optional
+        The frame number to start reading from (default is 0).
+
+    Returns
+    -------
+    dict
+        A dictionary containing point clouds for each frame within the specified range.
+
+    int
+        The frame number pointer indicating the next frame to be read.
+    """
+    pointclouds = {}
+    pointer = start
+
+    with open(experiment_path, "r") as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            framenum = int(row[0])
+            if framenum >= start and framenum < start + const.FB_READ_BUFFER_SIZE:
+                coords = [float(row[1]), float(row[2]), float(row[3]), float(row[4])]
+
+                # Read only the frames in the specified range
+                if framenum in pointclouds:
+                    # Append coordinates to the existing lists
+                    for key, value in zip(["x", "y", "z", "doppler"], coords):
+                        pointclouds[framenum][key].append(value)
+                else:
+                    # If not, create a new dictionary for the framenum
+                    pointclouds[framenum] = {
+                        "x": [coords[0]],
+                        "y": [coords[1]],
+                        "z": [coords[2]],
+                        "doppler": [coords[3]],
+                    }
+
+            elif framenum >= start + const.FB_READ_BUFFER_SIZE:
+                # Break the loop once const.FB_READ_BUFFER_SIZE frames are read
+                pointer = framenum
+                break
+
+    return pointclouds, pointer
+
+
 def calc_projection_points(value, y, vertical_axis=False):
+    """
+    Calculate the screen projection of a point based on its distance from a reference point.
+
+    Parameters
+    ----------
+    value : float
+        The distance value from the reference point along the specified axis (x: horizontal / z: vertical).
+
+    y : float
+        The distance value from the reference point along the y axis.
+
+    vertical_axis : bool, optional
+        Flag indicating whether the axis is vertical (True) or horizontal (False).
+        Default is False.
+
+    Returns
+    -------
+    float
+        The screen projection value of the point on the chosen axis (x / z).
+
+    """
+
     y_dist = y - const.M_Y
 
     if not vertical_axis:
@@ -44,6 +143,23 @@ def calc_projection_points(value, y, vertical_axis=False):
 
 
 def altered_EuclideanDist(p1, p2):
+    """
+    Calculate an altered Euclidean distance between two points in 3D space.
+
+    This distance metric incorporates modifications to better suit the characteristics of cylinder-shaped point clouds,
+    especially those representing the human silhouette. It achieves this by applying the following adjustments:
+
+    1. **Vertical Weighting**: Reduces the impact of the vertical distance by using a constant `const.DB_Z_WEIGHT`.
+    This is beneficial for improved clustering of cylinder-shaped point clouds.
+
+    2. **Inverse Proportional Weighting**: Introduces a weight to the result inversely proportional to the points' y-axis values.
+    This ensures that the distance outputs are lower when the point cloud is further away from the sensor and thus, more sparse.
+
+    Returns
+    -------
+    float
+        The adjusted Euclidean distance between the two points.
+    """
     # NOTE: The z-axis has less weight in the distance metric since the sillouette of a person is tall and thin.
     # Also, the further away from the sensor the more sparse the points, so we need a weighing factor
     weight = 1 - ((p1[1] + p2[1]) / 2) * const.DB_RANGE_WEIGHT
@@ -55,6 +171,27 @@ def altered_EuclideanDist(p1, p2):
 
 
 def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES):
+    """
+    Apply DBSCAN clustering to a 3D point cloud using an altered Euclidean distance metric.
+
+    Parameters
+    ----------
+    pointcloud : array-like
+        The 3D point cloud represented as a list or NumPy array.
+
+    eps : float, optional
+        The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+        Default is const.DB_EPS.
+
+    min_samples : int, optional
+        The number of samples (or total weight) in a neighborhood for a point to be considered as a core point.
+        Default is const.DB_MIN_SAMPLES.
+
+    Returns
+    -------
+    list
+        A list of clustered point clouds, where each cluster is represented as a list of points.
+    """
     dbscan = DBSCAN(
         eps=eps,
         min_samples=min_samples,
@@ -78,6 +215,22 @@ def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES)
 
 
 def point_transform_to_standard_axis(input):
+    """
+    Transform 3D point coordinates and velocities to a standard axis.
+
+    The transformation includes translation and rotation to bring the input point into a standard coordinate system.
+
+    Parameters
+    ----------
+    input : array-like
+        Input point represented as a 6-element array or list, where the first three elements are coordinates (x, y, z),
+        and the last three elements are velocities along the corresponding axes.
+
+    Returns
+    -------
+    np.array
+        Transformed point with coordinates and velocities in the standard axis system.
+    """
     # Translation Matrix (T)
     T = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, const.S_HEIGHT], [0, 0, 0, 1]])
 
@@ -176,7 +329,7 @@ def preprocess_data(detObj):
             )
 
             # Perform scene constraints filtering
-            # TODO: Add more scene constraints
+            # TODO: Add more scene constraints if necessary
             if (
                 transformed_point[2] <= 2
                 and transformed_point[2] > -0.1

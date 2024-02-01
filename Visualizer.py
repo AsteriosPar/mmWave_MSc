@@ -48,7 +48,7 @@ class Visualizer:
         self.ax_raw.set_zlim(0, axis_3d[2])
         self.ax_raw.set_title("Scatter plot of raw Point Cloud")
 
-        # Create subplot of
+        # Create subplot of tracks and predictions
         self.ax = fig.add_subplot(122, projection="3d")
         self.scatter = self.ax.scatter([], [], [])
         self.ax.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
@@ -59,36 +59,13 @@ class Visualizer:
         self.ax.set_zlabel("Z")
         self.ax.invert_yaxis()
         self.ax.invert_xaxis()
-        # Create proxy artists for the legend
         legend_handles = [
             Patch(color="red", label="Predicted Track"),
             Patch(color="green", label="Measured Track"),
         ]
-
-        # Add legend
         self.ax.legend(handles=legend_handles)
 
-        # # Plot window surface
-        # rect_height = axis_3d[2]
-        # vertices = [
-        #     (-axis_3d[0] / 2, 0, 0),
-        #     (-axis_3d[0] / 2, 0, rect_height),
-        #     (axis_3d[0] / 2, 0, rect_height),
-        #     (axis_3d[0] / 2, 0, 0),
-        # ]
-        # rectangle = Poly3DCollection([vertices], facecolors="gray", alpha=0.3)
-        # self.ax.add_collection3d(rectangle)
-
-        # # Plot monitor position
-        # center = (const.M_X, const.M_Y, const.M_Z)
-        # radius = 0.1
-        # phi, theta = np.mgrid[0.0 : 2.0 * np.pi : 100j, 0.0 : np.pi : 50j]
-        # x_sphere = center[0] + radius * np.sin(theta) * np.cos(phi)
-        # y_sphere = center[1] + radius * np.sin(theta) * np.sin(phi)
-        # z_sphere = center[2] + radius * np.cos(theta)
-        # self.ax.plot_surface(x_sphere, y_sphere, z_sphere, color="red")
-
-        plt.show(block=False)  # Set block=False to allow continuing execution
+        plt.show(block=False)
 
     def clear(self):
         # Remove pointcloud
@@ -204,48 +181,8 @@ class Visualizer:
         plt.pause(0.001)  # Pause for a short time to allow for updating
 
 
-# class ScreenAdapter:
-#     def __init__(self):
-#         plt.switch_backend("Qt5Agg")
-
-#         # Create a figure with a transparent background
-#         self.fig, self.ax = plt.subplots(
-#             figsize=(10, 8), frameon=False, facecolor="none"
-#         )
-#         self.ax.set_xlim(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2)
-#         self.ax.set_ylim(0, const.V_3D_AXIS[2])
-#         self.ax.set_axis_off()
-
-#         # Maximize the figure window
-#         figManager = plt.get_current_fig_manager()
-#         figManager.window.showMaximized()
-
-#     def update(self, trackbuffer: TrackBuffer):
-#         # Update the square in the 2D plot
-#         for patch in self.ax.patches:
-#             patch.remove()
-
-#         for track in trackbuffer.effective_tracks:
-#             (center, rect_size) = calc_fade_square(track)
-
-#             # Plot the filled square with updated center coordinates and alpha
-#             square = Rectangle(
-#                 (center[0] - rect_size / 2, center[1] - rect_size / 2),
-#                 rect_size,
-#                 rect_size,
-#                 alpha=0.9,
-#                 color="black",
-#             )
-#             self.ax.add_patch(square)
-
-#         plt.draw()
-#         plt.show(block=False)
-#         plt.pause(0.01)
-
-
 class ScreenAdapter:
     def __init__(self):
-        # Create the PyQtGraph window
         self.win = pg.GraphicsLayoutWidget()
         self.view = self.win.addPlot()
         self.view.setAspectLocked()
@@ -255,14 +192,10 @@ class ScreenAdapter:
             yRange=(const.M_HEIGHT, const.V_3D_AXIS[2]),
         )
         self.view.invertX()
-
-        # Maximize the window
         self.win.showMaximized()
 
         # Create a scatter plot with squares
-        # pen = (pg.mkPen(color=(255, 255, 255)),)  # White color
         brush = pg.mkBrush(color=(0, 0, 0))
-        # brush = pg.mkBrush(color=(255, 255, 255, 255))  # Fully opaque white color
         self.scatter = pg.ScatterPlotItem(pen=None, brush=brush, symbol="s")
         self.view.addItem(self.scatter)
 

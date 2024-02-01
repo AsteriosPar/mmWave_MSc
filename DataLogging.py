@@ -65,7 +65,7 @@ def write_thread(queue: Queue, data_buffer, data_path, stop_event: Event):
             df = pd.DataFrame(data)
             data_buffer = pd.concat([data_buffer, df], ignore_index=True)
 
-            if len(data_buffer) >= const.FB_BUFFER_SIZE:
+            if len(data_buffer) >= const.FB_WRITE_BUFFER_SIZE:
                 data_buffer.to_csv(
                     data_path,
                     mode="a",

@@ -1,13 +1,12 @@
 import time
 import os
-import csv
-import matplotlib.pyplot as plt
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer, ScreenAdapter
 from utils import (
     apply_DBscan,
     preprocess_data,
+    read_next_frames,
 )
 from Tracking import (
     TrackBuffer,
@@ -28,30 +27,13 @@ def main():
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
-        pointclouds = {}
-        with open(experiment_path, "r") as file:
-            csv_reader = csv.reader(file)
-            for row in csv_reader:
-                framenum = int(row[0])
-                coords = [float(row[1]), float(row[2]), float(row[3]), float(row[4])]
-
-                if framenum in pointclouds:
-                    # Append coordinates to the existing lists
-                    for key, value in zip(["x", "y", "z", "doppler"], coords):
-                        pointclouds[framenum][key].append(value)
-                else:
-                    # If not, create a new dictionary for the framenum
-                    pointclouds[framenum] = {
-                        "x": [coords[0]],
-                        "y": [coords[1]],
-                        "z": [coords[2]],
-                        "doppler": [coords[3]],
-                    }
+        pointclouds, pointer = read_next_frames(experiment_path)
 
         frame_count = 0
         SLEEPTIME = 0.083  # config "frameCfg"
 
     else:
+        # Online mode
         IWR1443 = ReadIWR14xx(
             const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
         )
@@ -74,6 +56,10 @@ def main():
             if const.ENABLE_MODE == OFFLINE:
                 # Offline mode
                 frame_count += 1
+                # If the read buffer is parsed, read more frames from the experiment file
+                if frame_count == pointer:
+                    pointclouds, pointer = read_next_frames(experiment_path, pointer)
+                # Get the data associated to the current frame
                 if frame_count in pointclouds:
                     dataOk = True
                     detObj = pointclouds[frame_count]
@@ -87,7 +73,6 @@ def main():
                 dataOk, frame, detObj = IWR1443.read()
 
             if dataOk:
-                # print(time.time() - time_init)
                 now = time.time()
                 trackbuffer.dt = now - trackbuffer.t
                 trackbuffer.t = now
@@ -100,7 +85,6 @@ def main():
                         batch.add_frame(effective_data)
                         if batch.is_complete():
                             new_clusters = apply_DBscan(batch.effective_data)
-                            # clusters = apply_DBscan(effective_data)
                             trackbuffer.add_tracks(new_clusters)
                             batch.empty()
 
@@ -112,36 +96,30 @@ def main():
                 else:
                     visual.clear()
                     # update the raw data scatter plot
-                    # visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                    visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                     # Update visualization graphs
                     visual.update(trackbuffer)
                     visual.draw()
 
-                # time.sleep(SLEEPTIME)  # Sampling frequency of 20 Hz
                 t_code = time.time() - t0
                 t_sleep = max(0, SLEEPTIME - t_code)
                 time.sleep(t_sleep)
-            # else:
-            #     t_code = time.time() - t0
-            #     trackbuffer.dt += SLEEPTIME
-            #     trackbuffer.dt += SLEEPTIME
-            #     t_sleep = max(0, SLEEPTIME - t_code)
-
-            # time.sleep(t_sleep)
 
         except KeyboardInterrupt:
-            # plt.close()
             if const.ENABLE_MODE == ONLINE:
                 del IWR1443
             break
 
 
 if __name__ == "__main__":
-    # if not const.ENABLE_MODE == ONLINE:
-    main()
-# else:
-#     cProfile.run("main()", "perf_stats")
+    if const.PROFILING:
+        if not os.path.exists(const.P_PROFILING_PATH):
+            os.makedirs(const.P_PROFILING_PATH)
 
-#     with open("profiling_results.txt", "w") as f:
-#         p = pstats.Stats("perf_stats", stream=f)
-#         p.sort_stats("cumulative").print_stats()
+        cProfile.run("main()", f"{const.P_PROFILING_PATH}perf_stats")
+
+        with open(f"{const.P_PROFILING_PATH}profiling_results", "w") as f:
+            p = pstats.Stats(f"{const.P_PROFILING_PATH}perf_stats", stream=f)
+            p.sort_stats("cumulative").print_stats()
+    else:
+        main()

@@ -299,6 +299,28 @@ class ClusterTrack:
         self.group_disp_est = (1 - a) * self.group_disp_est + a * self.get_D()
 
     def associate_pointcloud(self, pointcloud: np.array):
+        """
+        Associate a point cloud with the track.
+
+        Parameters
+        ----------
+        pointcloud : np.array
+            2D NumPy array representing the point cloud.
+
+        Notes
+        -----
+        This method performs the following steps:
+        1. Initializes a PointCluster with the given point cloud.
+        2. Estimates the number of points in the cluster.
+        3. Estimates the spread of measurements in the cluster.
+        4. Estimates the dispersion matrix of the point groups in the cluster.
+        5. Saves the current height and width of the point cloud projection to the screen in the ring buffers.
+
+        Parameters
+        ----------
+        pointcloud : np.array
+            2D NumPy array representing the point cloud.
+        """
         self.cluster = PointCluster(pointcloud)
         self._estimate_point_num()
         self._estimate_measurement_spread()
@@ -390,12 +412,14 @@ class ClusterTrack:
             min_samples=const.DB_INNER_MIN_SAMPLES,
         )
         new_track_clusters = []
-        if len(track_clusters) > 0:
-            # self.associate_pointcloud(np.array(track_clusters[0]))
 
-            if len(track_clusters) > 1:
-                new_track_clusters = [track_clusters[1]]
-                self.batch.empty()
+        # NOTE: This might work for filtering noise now, but might be problematic if kept when feeding the AI network
+        # if len(track_clusters) > 0:
+        # self.associate_pointcloud(np.array(track_clusters[0]))
+
+        if len(track_clusters) > 1:
+            new_track_clusters = [track_clusters[1]]
+            self.batch.empty()
 
         if self.cluster.status == DYNAMIC or self.batch.is_complete():
             self.batch.empty()
@@ -413,8 +437,11 @@ class TrackBuffer:
         List of all tracks in the buffer.
     effective_tracks : List[ClusterTrack]
         List of currently active (non-INACTIVE) tracks in the buffer.
-    dt : int
-        Time multiplier used for predicting states.
+    dt : float
+        Time multiplier used for predicting states. Indicates the time passed since the previous
+        valid observed frame.
+    t : float
+        Current time when the TrackBuffer is instantiated / updated.
 
     Methods
     -------
@@ -571,7 +598,7 @@ class TrackBuffer:
 
     def get_gated_clouds(self, full_set: np.array):
         """
-        Gate the pointcloud and return gated and unassigned clouds.
+        Split the pointcloud according to the formed gates and return gated and unassigned clouds.
 
         Parameters
         ----------
@@ -608,7 +635,7 @@ class TrackBuffer:
         Parameters
         ----------
         full_set : np.array
-            Full set of points.
+            Full set of sensed points.
 
         Returns
         -------
@@ -662,9 +689,11 @@ class TrackBuffer:
         # Clustering of the remainder points Step
         new_clusters = []
         batch.add_frame(unassigned)
-        if batch.is_complete and len(batch.effective_data) > 0:
+        if len(batch.effective_data) > 0:
             new_clusters = apply_DBscan(batch.effective_data)
-            batch.empty()
+
+            if batch.is_complete or len(new_clusters) > 0:
+                batch.empty()
 
             # Create new track for every new cluster
             self.add_tracks(new_clusters)
