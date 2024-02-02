@@ -15,6 +15,7 @@ from Tracking import (
 import cProfile
 import pstats
 from PyQt5.QtWidgets import QApplication
+from wakepy import keep
 import sys
 
 OFFLINE = 0
@@ -49,66 +50,70 @@ def main():
     trackbuffer = TrackBuffer()
     batch = BatchedData()
 
-    # Control loop
-    while True:
-        try:
-            t0 = time.time()
-            if const.SYSTEM_MODE == OFFLINE:
-                # Offline mode
-                frame_count += 1
-                # If the read buffer is parsed, read more frames from the experiment file
-                if frame_count == pointer:
-                    pointclouds, pointer = read_next_frames(experiment_path, pointer)
-                # Get the data associated to the current frame
-                if frame_count in pointclouds:
-                    dataOk = True
-                    detObj = pointclouds[frame_count]
-                else:
-                    t_code = time.time() - t0
-                    time.sleep(max(0, SLEEPTIME - t_code))
-                    dataOk = False
-
-            else:
-                # Online mode
-                dataOk, frame, detObj = IWR1443.read()
-
-            if dataOk:
-                now = time.time()
-                trackbuffer.dt = now - trackbuffer.t
-                trackbuffer.t = now
-                # Apply scene constraints, translation and static clutter removal
-                effective_data = preprocess_data(detObj)
-
-                if effective_data.shape[0] != 0:
-                    if not trackbuffer.has_active_tracks():
-                        # Add frames to a batch until it reaches the maximum frames required
-                        batch.add_frame(effective_data)
-                        if batch.is_complete():
-                            new_clusters = apply_DBscan(batch.effective_data)
-                            trackbuffer.add_tracks(new_clusters)
-                            batch.empty()
-
+    # Disable screen sleep/screensaver
+    with keep.presenting():
+        # Control loop
+        while True:
+            try:
+                t0 = time.time()
+                if const.SYSTEM_MODE == OFFLINE:
+                    # Offline mode
+                    frame_count += 1
+                    # If the read buffer is parsed, read more frames from the experiment file
+                    if frame_count == pointer:
+                        pointclouds, pointer = read_next_frames(
+                            experiment_path, pointer
+                        )
+                    # Get the data associated to the current frame
+                    if frame_count in pointclouds:
+                        dataOk = True
+                        detObj = pointclouds[frame_count]
                     else:
-                        trackbuffer.track(effective_data, batch)
+                        t_code = time.time() - t0
+                        time.sleep(max(0, SLEEPTIME - t_code))
+                        dataOk = False
 
-                if const.SCREEN_CONNECTED:
-                    visual.update(trackbuffer)
                 else:
-                    visual.clear()
-                    # update the raw data scatter plot
-                    visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
-                    # Update visualization graphs
-                    visual.update(trackbuffer)
-                    visual.draw()
+                    # Online mode
+                    dataOk, frame, detObj = IWR1443.read()
 
-                t_code = time.time() - t0
-                t_sleep = max(0, SLEEPTIME - t_code)
-                time.sleep(t_sleep)
+                if dataOk:
+                    now = time.time()
+                    trackbuffer.dt = now - trackbuffer.t
+                    trackbuffer.t = now
+                    # Apply scene constraints, translation and static clutter removal
+                    effective_data = preprocess_data(detObj)
 
-        except KeyboardInterrupt:
-            if const.SYSTEM_MODE == ONLINE:
-                del IWR1443
-            break
+                    if effective_data.shape[0] != 0:
+                        if not trackbuffer.has_active_tracks():
+                            # Add frames to a batch until it reaches the maximum frames required
+                            batch.add_frame(effective_data)
+                            if batch.is_complete():
+                                new_clusters = apply_DBscan(batch.effective_data)
+                                trackbuffer.add_tracks(new_clusters)
+                                batch.empty()
+
+                        else:
+                            trackbuffer.track(effective_data, batch)
+
+                    if const.SCREEN_CONNECTED:
+                        visual.update(trackbuffer)
+                    else:
+                        visual.clear()
+                        # update the raw data scatter plot
+                        visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+                        # Update visualization graphs
+                        visual.update(trackbuffer)
+                        visual.draw()
+
+                    t_code = time.time() - t0
+                    t_sleep = max(0, SLEEPTIME - t_code)
+                    time.sleep(t_sleep)
+
+            except KeyboardInterrupt:
+                if const.SYSTEM_MODE == ONLINE:
+                    del IWR1443
+                break
 
 
 if __name__ == "__main__":
