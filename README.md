@@ -22,16 +22,16 @@ This is the repository for my MSc thesis:
    ```sh
    pip install -r requirements.txt
    ```
-3. Adjust the system and scene configurations from the default directory `./constants.py`. More information on the system configurations on the next section. 
+3. Adjust the system and scene configurations from the default directory `./src/constants.py`. More information on the system configurations on the next section. 
 
 4. (Optional) For creating\logging an experiment for offline experimentation, in the directory of the local copy run the logging module.
     ```sh
-    python3 ./DataLogging.py
+    python3 ./src/DataLogging.py
     ```
 
 5. Run the program.
     ```sh
-    python3 ./main.py
+    python3 ./src/main.py
     ```
 
 ## Configurations

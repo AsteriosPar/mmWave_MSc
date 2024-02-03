@@ -1,15 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import constants as const
-from Tracking import TrackBuffer, ClusterTrack
-from utils import calc_projection_points
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from matplotlib.patches import Patch
-from matplotlib.patches import Rectangle
-
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QColor
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.patches import Patch
+
+import constants as const
+from Tracking import TrackBuffer, ClusterTrack
+from Utils import calc_projection_points
 
 
 def calc_fade_square(track: ClusterTrack):
@@ -21,8 +19,8 @@ def calc_fade_square(track: ClusterTrack):
         ]
     ).flatten()
     center_x = calc_projection_points(value=coords[0], y=coords[1])
-    center_y = track.height_buffer.get_mean()
-    center = [center_x, center_y]
+    center_z = track.height_buffer.get_mean()
+    center = [center_x, center_z]
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
         track.width_buffer.get_max(),

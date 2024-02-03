@@ -1,9 +1,14 @@
+import sys
 import time
 import os
+import cProfile
+import pstats
+from PyQt5.QtWidgets import QApplication
+from wakepy import keep
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer, ScreenAdapter
-from utils import (
+from Utils import (
     apply_DBscan,
     preprocess_data,
     read_next_frames,
@@ -12,11 +17,6 @@ from Tracking import (
     TrackBuffer,
     BatchedData,
 )
-import cProfile
-import pstats
-from PyQt5.QtWidgets import QApplication
-from wakepy import keep
-import sys
 
 OFFLINE = 0
 ONLINE = 1
