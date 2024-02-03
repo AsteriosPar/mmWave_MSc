@@ -373,7 +373,14 @@ class ClusterTrack:
         """
         Update the state of the Kalman filter based on the associated measurement (pointcloud centroid).
         """
-        self.state.inst.update(np.array(self.cluster.centroid), R=self.get_Rc())
+        z = np.array(self.cluster.centroid)
+        x_prev = self.state.inst.x[:2, 0]
+        self.state.inst.update(z, R=self.get_Rc())
+
+        # If the variance between the predicted and measured position
+        variance = z[:1] - self.state.inst.x[:1, 0]
+        if abs(variance.any()) > 0.6:
+            self.state.inst.x[:1, 0] += variance * 0.4
 
     def update_lifetime(self, dt, reset=False):
         """

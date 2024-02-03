@@ -37,7 +37,7 @@ S_TILT = -17  # degrees (-180, 180)
 V_SCALLING = 1 / 1  # Scaling parameter (only for emulating)
 V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 4.0, M_HEIGHT + (M_SIZE[1] / V_SCALLING)]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
-V_SCREEN_FADE_SIZE_MIN: float = 0.12
+V_SCREEN_FADE_SIZE_MIN: float = 0.14
 V_SCREEN_FADE_WEIGHT: float = (
     0.08  # square size reduction (m) per 1 meter of distance from sensor
 )
@@ -76,18 +76,18 @@ TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 5
 
 # Kalman
-KF_R_STD = 100
-KF_Q_STD = 0.01
+KF_R_STD = 0.1
+KF_Q_STD = 1
 
 # Initialization values
-KF_P_INIT = 0.001
-KF_GROUP_DISP_EST_INIT = 0.1
+KF_P_INIT = 0.01
+KF_GROUP_DISP_EST_INIT = 0.01
 
 # Kalman estimation parameters
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
-KF_SPREAD_LIM = [0.3, 0.3, 2, 0.8, 0.8, 0.2]  # Revise
+KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]  # Revise
 KF_A_SPR = 0.9  # Revise
 
 
@@ -163,10 +163,10 @@ class CONST_VEL_MODEL:
 
 
 ENABLE_STATIC_CLUTTER = True
-MOTION_MODEL = CONST_ACC_MODEL
+MOTION_MODEL = CONST_VEL_MODEL
 PROFILING = False
 SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = False
+SCREEN_CONNECTED = True
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

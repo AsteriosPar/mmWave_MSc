@@ -146,16 +146,16 @@ class Visualizer:
         for track in trackbuffer.effective_tracks:
             # We want to visualize only new points.
             if track.lifetime == 0:
-                coords = track.cluster.pointcloud
-                x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
+                # coords = track.cluster.pointcloud
+                # x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-                # Update pointclouds with different colors for different clusters
-                x_all = np.concatenate([x_all, x])
-                y_all = np.concatenate([y_all, y])
-                z_all = np.concatenate([z_all, z])
-                color_all = np.concatenate(
-                    [color_all, np.repeat([track.color], len(x), axis=0)]
-                )
+                # # Update pointclouds with different colors for different clusters
+                # x_all = np.concatenate([x_all, x])
+                # y_all = np.concatenate([y_all, y])
+                # z_all = np.concatenate([z_all, z])
+                # color_all = np.concatenate(
+                #     [color_all, np.repeat([track.color], len(x), axis=0)]
+                # )
 
                 self.dynamic_art.append(
                     self._draw_bounding_box(
