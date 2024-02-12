@@ -170,7 +170,7 @@ def altered_EuclideanDist(p1, p2):
     )
 
 
-def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES):
+def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES_MIN):
     """
     Apply DBSCAN clustering to a 3D point cloud using an altered Euclidean distance metric.
 

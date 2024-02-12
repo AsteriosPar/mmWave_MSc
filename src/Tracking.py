@@ -405,31 +405,36 @@ class ClusterTrack:
 
         """
 
-        # Allow frame overlaying over static tracks for better resolution
-        if self.cluster.status == STATIC:
-            self.batch.add_frame(self.cluster.pointcloud)
-            pointcloud = self.batch.effective_data
-        else:
-            pointcloud = self.cluster.pointcloud
-
-        # Apply clustering to identify inner clusters
-        track_clusters = apply_DBscan(
-            pointcloud=pointcloud,
-            eps=const.DB_INNER_EPS,
-            min_samples=const.DB_INNER_MIN_SAMPLES,
-        )
         new_track_clusters = []
+        spread = self.cluster.max_vals[:1] - self.cluster.min_vals[:1]
+        if (
+            self.cluster.point_num > const.DB_POINTS_THRES
+            and spread.any() > const.DB_SPREAD_THRES
+        ):
+            # Allow frame overlaying over static tracks for better resolution
+            if self.cluster.status == STATIC:
+                self.batch.add_frame(self.cluster.pointcloud)
+                pointcloud = self.batch.effective_data
+            else:
+                pointcloud = self.cluster.pointcloud
 
-        # NOTE: This might work for filtering noise now, but might be problematic if kept when feeding the AI network
-        # if len(track_clusters) > 0:
-        # self.associate_pointcloud(np.array(track_clusters[0]))
+            # Apply clustering to identify inner clusters
+            track_clusters = apply_DBscan(
+                pointcloud=pointcloud,
+                eps=const.DB_INNER_EPS,
+                min_samples=const.db_min_sample(self.cluster.centroid[1]),
+            )
 
-        if len(track_clusters) > 1:
-            new_track_clusters = [track_clusters[1]]
-            self.batch.empty()
+            # NOTE: This might work for filtering noise now, but might be problematic if kept when feeding the AI network
+            # if len(track_clusters) > 0:
+            # self.associate_pointcloud(np.array(track_clusters[0]))
 
-        if self.cluster.status == DYNAMIC or self.batch.is_complete():
-            self.batch.empty()
+            if len(track_clusters) > 1:
+                new_track_clusters = [track_clusters[1]]
+                self.batch.empty()
+
+            if self.cluster.status == DYNAMIC or self.batch.is_complete():
+                self.batch.empty()
 
         return new_track_clusters
 

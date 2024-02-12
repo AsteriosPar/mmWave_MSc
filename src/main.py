@@ -88,9 +88,9 @@ def main():
                         if not trackbuffer.has_active_tracks():
                             # Add frames to a batch until it reaches the maximum frames required
                             batch.add_frame(effective_data)
-                            if batch.is_complete():
-                                new_clusters = apply_DBscan(batch.effective_data)
-                                trackbuffer.add_tracks(new_clusters)
+                            new_clusters = apply_DBscan(batch.effective_data)
+                            trackbuffer.add_tracks(new_clusters)
+                            if batch.is_complete() or len(new_clusters) > 0:
                                 batch.empty()
 
                         else:

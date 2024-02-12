@@ -199,10 +199,9 @@ class ScreenAdapter:
 
         self.PIX_TO_M = 3779 * const.V_SCALLING
 
-    def update(self, trackbuffer):
+    def update(self, trackbuffer: TrackBuffer):
         # Clear previous items in the view
         self.scatter.clear()
-
         for track in trackbuffer.effective_tracks:
             center, rect_size = calc_fade_square(track)
 
