@@ -30,34 +30,25 @@ class BatchedData:
     """
 
     def __init__(self):
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
-
-    def empty(self):
-        """
-        Reset the counter and create an empty effective_data array
-        """
-        self.counter = 0
-        self.effective_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+        self.buffer = RingBuffer(const.FB_FRAMES_BATCH + 1, np.empty((0, 6)))
+        self.effective_data = np.empty((0, 6))
+        self.size = self.buffer.size
 
     def add_frame(self, new_data: np.array):
         """
         Add a new frame of data to the effective_data array.
         """
-        self.effective_data = np.append(self.effective_data, new_data, axis=0)
-        self.counter += 1
+        while len(self.buffer.buffer) >= self.size:
+            self.buffer.buffer.popleft()
+        self.buffer.append(new_data)
+        self.effective_data = np.concatenate(list(self.buffer.buffer), axis=0)
 
-    def is_complete(self):
-        """
-        Check if the batch is complete based on the counter and the threshold FB_FRAMES_BATCH
-        set in the constants.py file.
+    def clear(self):
+        self.buffer.buffer.clear()
+        self.effective_data = np.array([])
 
-        Returns
-        -------
-        bool
-            Whether or not the batch is complete.
-        """
-        return self.counter >= (const.FB_FRAMES_BATCH - 1)
+    def change_buffer_size(self, new_size):
+        self.size = new_size
 
 
 class KalmanState:
@@ -411,12 +402,15 @@ class ClusterTrack:
             self.cluster.point_num > const.DB_POINTS_THRES
             and spread.any() > const.DB_SPREAD_THRES
         ):
-            # Allow frame overlaying over static tracks for better resolution
+            # Allow frame fusion for better resolution
+            # NOTE: State machine is better here
             if self.cluster.status == STATIC:
-                self.batch.add_frame(self.cluster.pointcloud)
-                pointcloud = self.batch.effective_data
+                self.batch.change_buffer_size(const.FB_FRAMES_BATCH_STATIC)
             else:
-                pointcloud = self.cluster.pointcloud
+                self.batch.change_buffer_size(const.FB_FRAMES_BATCH)
+
+            self.batch.add_frame(self.cluster.pointcloud)
+            pointcloud = self.batch.effective_data
 
             # Apply clustering to identify inner clusters
             track_clusters = apply_DBscan(
@@ -425,16 +419,8 @@ class ClusterTrack:
                 min_samples=const.db_min_sample(self.cluster.centroid[1]),
             )
 
-            # NOTE: This might work for filtering noise now, but might be problematic if kept when feeding the AI network
-            # if len(track_clusters) > 0:
-            # self.associate_pointcloud(np.array(track_clusters[0]))
-
             if len(track_clusters) > 1:
                 new_track_clusters = [track_clusters[1]]
-                self.batch.empty()
-
-            if self.cluster.status == DYNAMIC or self.batch.is_complete():
-                self.batch.empty()
 
         return new_track_clusters
 
@@ -704,8 +690,8 @@ class TrackBuffer:
         if len(batch.effective_data) > 0:
             new_clusters = apply_DBscan(batch.effective_data)
 
-            if batch.is_complete or len(new_clusters) > 0:
-                batch.empty()
+            if len(new_clusters) > 0:
+                batch.clear()
 
             # Create new track for every new cluster
             self.add_tracks(new_clusters)

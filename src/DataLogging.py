@@ -103,7 +103,6 @@ def data_log_mode():
     IWR1443 = ReadIWR14xx(
         const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
     )
-    print("reached")
     SLEEPTIME = 0.001 * IWR1443.framePeriodicity  # Sleeping period (sec)
 
     # Create separate threads for reading and writing

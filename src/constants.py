@@ -7,7 +7,9 @@ ONLINE = 1
 PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
-P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
+# P_CONFIG_PATH = "./config_cases/10m_77Hz.cfg"
+P_CONFIG_PATH = "./config_cases/7m.cfg"
+# P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
 P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
 P_PROFILING_PATH = "./profiling/"
@@ -53,6 +55,7 @@ FB_READ_BUFFER_SIZE = 100
 
 # Number of frames per Batch
 FB_FRAMES_BATCH = 4
+FB_FRAMES_BATCH_STATIC = 8
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -174,8 +177,8 @@ class CONST_VEL_MODEL:
 ENABLE_STATIC_CLUTTER = True
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
-SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = True
+SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

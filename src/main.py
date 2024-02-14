@@ -75,7 +75,7 @@ def main():
 
                 else:
                     # Online mode
-                    dataOk, frame, detObj = IWR1443.read()
+                    dataOk, _, detObj = IWR1443.read()
 
                 if dataOk:
                     now = time.time()
@@ -85,16 +85,7 @@ def main():
                     effective_data = preprocess_data(detObj)
 
                     if effective_data.shape[0] != 0:
-                        if not trackbuffer.has_active_tracks():
-                            # Add frames to a batch until it reaches the maximum frames required
-                            batch.add_frame(effective_data)
-                            new_clusters = apply_DBscan(batch.effective_data)
-                            trackbuffer.add_tracks(new_clusters)
-                            if batch.is_complete() or len(new_clusters) > 0:
-                                batch.empty()
-
-                        else:
-                            trackbuffer.track(effective_data, batch)
+                        trackbuffer.track(effective_data, batch)
 
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)
