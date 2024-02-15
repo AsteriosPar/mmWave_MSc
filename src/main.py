@@ -104,6 +104,7 @@ def main():
             except KeyboardInterrupt:
                 if const.SYSTEM_MODE == ONLINE:
                     del IWR1443
+                    # app.exit()
                 break
 
 

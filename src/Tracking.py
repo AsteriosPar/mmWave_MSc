@@ -650,7 +650,7 @@ class TrackBuffer:
                 track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
                 # inner cluster separation
-                new_inner_clusters.append(track.seek_inner_clusters())
+                # new_inner_clusters.append(track.seek_inner_clusters())
 
         # In case inner clusters are found, create new tracks for them
         for inner_cluster in new_inner_clusters:
