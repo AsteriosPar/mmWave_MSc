@@ -1,6 +1,7 @@
 import sys
 import time
 import os
+import shutil
 from threading import Thread, Event
 from queue import Queue
 import pandas as pd
@@ -47,7 +48,11 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
         stop_event.set()
 
 
-def write_thread(queue: Queue, data_buffer, data_path, stop_event: Event):
+def write_thread(queue: Queue, data_path, stop_event: Event):
+    data_buffer = pd.DataFrame()
+    cur_file_index = 1
+    cur_file = os.path.join(data_path, f"{cur_file_index}.csv")
+    frames_in_cur_file = 0
     try:
         while not stop_event.is_set():
             frameNumber, detObj = queue.get()
@@ -61,20 +66,45 @@ def write_thread(queue: Queue, data_buffer, data_path, stop_event: Event):
                 "Doppler": detObj["doppler"],
             }
 
-            # Store data in the data path
+            # # Store data in the data path
             df = pd.DataFrame(data)
             data_buffer = pd.concat([data_buffer, df], ignore_index=True)
+            frames_in_cur_file += 1
+            # length = len(data_buffer)
 
-            if len(data_buffer) >= const.FB_WRITE_BUFFER_SIZE:
-                data_buffer.to_csv(
-                    data_path,
-                    mode="a",
-                    index=False,
-                    header=False,
-                )
+            # if length >= const.FB_WRITE_BUFFER_SIZE:
+            #     data_buffer.to_csv(
+            #         cur_file,
+            #         mode="a",
+            #         index=False,
+            #         header=False,
+            #     )
 
-                # Clear the buffer
+            #     # Clear the buffer
+            #     data_buffer.drop(data_buffer.index, inplace=True)
+
+            #     if length >= const.FB_EXPERIMENT_FILE_SIZE - frames_in_cur_file:
+            #         frames_in_cur_file = 0
+            #         cur_file_index += 1
+            #         cur_file = os.path.join(data_path, f"{cur_file_index}.csv")
+            #     else:
+            #         frames_in_cur_file += length
+
+            # Check if buffer size or file size limit is reached
+            if (
+                len(data_buffer) >= const.FB_WRITE_BUFFER_SIZE
+                or frames_in_cur_file >= const.FB_EXPERIMENT_FILE_SIZE
+            ):
+                # Write data to CSV
+                df = pd.DataFrame(data_buffer)
+                df.to_csv(cur_file, mode="a", index=False, header=False)
                 data_buffer.drop(data_buffer.index, inplace=True)
+
+                # Update file index and file path if necessary
+                if frames_in_cur_file >= const.FB_EXPERIMENT_FILE_SIZE:
+                    frames_in_cur_file = 0
+                    cur_file_index += 1
+                    cur_file = os.path.join(data_path, f"{cur_file_index}.csv")
 
     except KeyboardInterrupt:
         stop_event.set()
@@ -92,11 +122,13 @@ def data_log_mode():
     )
     if os.path.exists(data_path):
         if query_to_overwrite():
-            os.remove(data_path)
+            shutil.rmtree(data_path)
+            os.makedirs(data_path)
         else:
             return
+    else:
+        os.makedirs(data_path)
 
-    data_buffer = pd.DataFrame()
     queue = Queue()
     stop_event = Event()
 
@@ -110,7 +142,7 @@ def data_log_mode():
         target=read_thread, args=(queue, IWR1443, SLEEPTIME, stop_event)
     )
     write_thread_instance = Thread(
-        target=write_thread, args=(queue, data_buffer, data_path, stop_event)
+        target=write_thread, args=(queue, data_path, stop_event)
     )
 
     try:

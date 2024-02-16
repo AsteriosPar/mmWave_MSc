@@ -28,10 +28,10 @@ def main():
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
-        pointclouds, pointer = read_next_frames(experiment_path)
+        pointclouds, pointer, last_frame = read_next_frames(experiment_path)
 
         frame_count = 0
-        SLEEPTIME = 0.083  # config "frameCfg"
+        SLEEPTIME = 0.1  # config "frameCfg"
 
     else:
         # Online mode
@@ -60,8 +60,8 @@ def main():
                     # Offline mode
                     frame_count += 1
                     # If the read buffer is parsed, read more frames from the experiment file
-                    if frame_count == pointer:
-                        pointclouds, pointer = read_next_frames(
+                    if frame_count > last_frame:
+                        pointclouds, pointer, last_frame = read_next_frames(
                             experiment_path, pointer
                         )
                     # Get the data associated to the current frame

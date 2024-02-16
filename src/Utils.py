@@ -4,6 +4,7 @@ import constants as const
 import math
 import csv
 import numpy as np
+import os
 
 
 class RingBuffer:
@@ -49,7 +50,7 @@ class RingBuffer:
         return np.mean(self.buffer)
 
 
-def read_next_frames(experiment_path, start=0):
+def read_next_frames(experiment_path, start=[0, 1]):
     """
     Read the next batch of frames from the given experiment file starting from the specified frame number.
 
@@ -58,8 +59,8 @@ def read_next_frames(experiment_path, start=0):
     experiment_path : str
         The path to the CSV file containing the experiment data.
 
-    start : int, optional
-        The frame number to start reading from (default is 0).
+    start : tuple, optional
+        The frame number to start reading from (default is 0), and the file index to read from (default is 1).
 
     Returns
     -------
@@ -71,13 +72,24 @@ def read_next_frames(experiment_path, start=0):
     """
     pointclouds = {}
     pointer = start
+    last_frame = None
 
-    with open(experiment_path, "r") as file:
-        csv_reader = csv.reader(file)
-        for row in csv_reader:
-            framenum = int(row[0])
-            if framenum >= start and framenum < start + const.FB_READ_BUFFER_SIZE:
-                coords = [float(row[1]), float(row[2]), float(row[3]), float(row[4])]
+    while len(pointclouds) < const.FB_READ_BUFFER_SIZE:
+        file_path = os.path.join(experiment_path, f"{pointer[1]}.csv")
+        with open(file_path, "r") as file:
+            csv_reader = csv.reader(file)
+            for index, row in enumerate(csv_reader):
+                # Pass previously parsed frames
+                if index < pointer[0]:
+                    continue
+
+                framenum = int(row[0])
+                coords = [
+                    float(row[1]),
+                    float(row[2]),
+                    float(row[3]),
+                    float(row[4]),
+                ]
 
                 # Read only the frames in the specified range
                 if framenum in pointclouds:
@@ -93,12 +105,17 @@ def read_next_frames(experiment_path, start=0):
                         "doppler": [coords[3]],
                     }
 
-            elif framenum >= start + const.FB_READ_BUFFER_SIZE:
-                # Break the loop once const.FB_READ_BUFFER_SIZE frames are read
-                pointer = framenum
-                break
+                if len(pointclouds) == const.FB_READ_BUFFER_SIZE:
+                    # Break the loop once const.FB_READ_BUFFER_SIZE frames are read
+                    pointer[0] = index + 1
+                    last_frame = framenum
+                    break
 
-    return pointclouds, pointer
+            else:
+                pointer[0] = 0
+                pointer[1] += 1
+
+    return pointclouds, pointer, last_frame
 
 
 def calc_projection_points(value, y, vertical_axis=False):
