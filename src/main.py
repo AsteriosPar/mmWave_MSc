@@ -9,7 +9,6 @@ import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer, ScreenAdapter
 from Utils import (
-    apply_DBscan,
     preprocess_data,
     read_next_frames,
 )
@@ -57,7 +56,10 @@ def main():
             try:
                 t0 = time.time()
                 if const.SYSTEM_MODE == OFFLINE:
-                    # Offline mode
+                    # If last_frame is None the offline experiment has reached its end or the experiment file was not found
+                    if last_frame is None:
+                        break
+
                     frame_count += 1
                     # If the read buffer is parsed, read more frames from the experiment file
                     if frame_count > last_frame:

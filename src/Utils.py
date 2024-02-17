@@ -76,44 +76,47 @@ def read_next_frames(experiment_path, start=[0, 1]):
 
     while len(pointclouds) < const.FB_READ_BUFFER_SIZE:
         file_path = os.path.join(experiment_path, f"{pointer[1]}.csv")
-        with open(file_path, "r") as file:
-            csv_reader = csv.reader(file)
-            for index, row in enumerate(csv_reader):
-                # Pass previously parsed frames
-                if index < pointer[0]:
-                    continue
+        try:
+            with open(file_path, "r") as file:
+                csv_reader = csv.reader(file)
+                for index, row in enumerate(csv_reader):
+                    # Pass previously parsed frames
+                    if index < pointer[0]:
+                        continue
 
-                framenum = int(row[0])
-                coords = [
-                    float(row[1]),
-                    float(row[2]),
-                    float(row[3]),
-                    float(row[4]),
-                ]
+                    framenum = int(row[0])
+                    coords = [
+                        float(row[1]),
+                        float(row[2]),
+                        float(row[3]),
+                        float(row[4]),
+                    ]
 
-                # Read only the frames in the specified range
-                if framenum in pointclouds:
-                    # Append coordinates to the existing lists
-                    for key, value in zip(["x", "y", "z", "doppler"], coords):
-                        pointclouds[framenum][key].append(value)
+                    # Read only the frames in the specified range
+                    if framenum in pointclouds:
+                        # Append coordinates to the existing lists
+                        for key, value in zip(["x", "y", "z", "doppler"], coords):
+                            pointclouds[framenum][key].append(value)
+                    else:
+                        # If not, create a new dictionary for the framenum
+                        pointclouds[framenum] = {
+                            "x": [coords[0]],
+                            "y": [coords[1]],
+                            "z": [coords[2]],
+                            "doppler": [coords[3]],
+                        }
+
+                    if len(pointclouds) == const.FB_READ_BUFFER_SIZE:
+                        # Break the loop once const.FB_READ_BUFFER_SIZE frames are read
+                        pointer[0] = index + 1
+                        last_frame = framenum
+                        break
                 else:
-                    # If not, create a new dictionary for the framenum
-                    pointclouds[framenum] = {
-                        "x": [coords[0]],
-                        "y": [coords[1]],
-                        "z": [coords[2]],
-                        "doppler": [coords[3]],
-                    }
+                    pointer[0] = 0
+                    pointer[1] += 1
 
-                if len(pointclouds) == const.FB_READ_BUFFER_SIZE:
-                    # Break the loop once const.FB_READ_BUFFER_SIZE frames are read
-                    pointer[0] = index + 1
-                    last_frame = framenum
-                    break
-
-            else:
-                pointer[0] = 0
-                pointer[1] += 1
+        except FileNotFoundError:
+            break
 
     return pointclouds, pointer, last_frame
 

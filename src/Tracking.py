@@ -480,6 +480,7 @@ class TrackBuffer:
         """
         self.tracks: List[ClusterTrack] = []
         self.effective_tracks: List[ClusterTrack] = []
+        self.next_track_id = 0
         self.dt = 0
         self.t = time.time()
 
@@ -500,8 +501,8 @@ class TrackBuffer:
         """
         Update the list of effective tracks.
         """
-        self.effective_tracks = [
-            track for track in self.tracks if track.status != INACTIVE
+        self.effective_tracks[:] = [
+            track for track in self.effective_tracks if track.status != INACTIVE
         ]
 
     def has_active_tracks(self):
@@ -533,7 +534,7 @@ class TrackBuffer:
             An array representing the associated track (entry) for each point (index).
             If no track is associated with a point, the entry is set to None.
         """
-        dist_matrix = np.empty((full_set.shape[0], len(self.tracks)))
+        dist_matrix = np.empty((full_set.shape[0], len(self.effective_tracks)))
         associated_track_for = np.full(full_set.shape[0], None, dtype=object)
 
         for track in self.effective_tracks:
@@ -576,8 +577,8 @@ class TrackBuffer:
         """
         for new_cluster in new_clusters:
             new_track = ClusterTrack(PointCluster(np.array(new_cluster)))
-            new_track.id = len(self.tracks)
-            self.tracks.append(new_track)
+            new_track.id = self.next_track_id
+            self.next_track_id += 1
             self.effective_tracks.append(new_track)
 
     def predict_all(self):

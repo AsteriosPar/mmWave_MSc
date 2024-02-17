@@ -70,25 +70,6 @@ def write_thread(queue: Queue, data_path, stop_event: Event):
             df = pd.DataFrame(data)
             data_buffer = pd.concat([data_buffer, df], ignore_index=True)
             frames_in_cur_file += 1
-            # length = len(data_buffer)
-
-            # if length >= const.FB_WRITE_BUFFER_SIZE:
-            #     data_buffer.to_csv(
-            #         cur_file,
-            #         mode="a",
-            #         index=False,
-            #         header=False,
-            #     )
-
-            #     # Clear the buffer
-            #     data_buffer.drop(data_buffer.index, inplace=True)
-
-            #     if length >= const.FB_EXPERIMENT_FILE_SIZE - frames_in_cur_file:
-            #         frames_in_cur_file = 0
-            #         cur_file_index += 1
-            #         cur_file = os.path.join(data_path, f"{cur_file_index}.csv")
-            #     else:
-            #         frames_in_cur_file += length
 
             # Check if buffer size or file size limit is reached
             if (
