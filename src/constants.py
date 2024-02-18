@@ -7,35 +7,34 @@ ONLINE = 1
 PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
-# P_CONFIG_PATH = "./config_cases/10m_77Hz.cfg"
-# P_CONFIG_PATH = "./config_cases/9m.cfg"
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
-# P_CONFIG_PATH = "./config_cases/iwr1443sdk2_4m_12hz.cfg"
-P_LOG_PATH = "./dataset/log/"
 P_DATA_PATH = "./dataset/"
+P_LOG_PATH = f"./{P_DATA_PATH}/log/"
+P_PREPROCESS_PATH = f"./{P_DATA_PATH}/preprocessed/"
 P_PROFILING_PATH = "./profiling/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
+
+# Experiment specifications
 P_EXPERIMENT_FILE_READ = "test7"
-P_EXPERIMENT_FILE_WRITE = "test7"
 
 ###### Scene Setup ######
-# Monitor Coordinates
-M_X: float = 0.08
-M_Y: float = -0.42
-M_Z: float = 1.5
-M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-# M_SIZE = [3840 * PIXEL_TO_METERS, 2160 * PIXEL_TO_METERS]  # Monitor
-# M_SIZE = [10, 0.2]  # Monitor Approximation
+# Sensitive Coordinates
+M_X = 0.08
+M_Y = -0.42
+M_Z = 1.5
 
+# Window Attributes
+M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
+# M_SIZE = [1.6, 0.9]  # Monitor Approximation
 M_HEIGHT = 0.8
 
-# Sensor
+# Sensor Attributes
 S_HEIGHT = 1.6
 S_TILT = -5  # degrees (-180, 180)
 
 # Plot Parameters
-V_SCALLING = 1 / 6  # Scaling parameter (only for emulating)
+V_SCALLING = 1 / 1  # Scaling parameter (only for emulating)
 V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 8.0, M_HEIGHT + (M_SIZE[1] / V_SCALLING)]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
 V_SCREEN_FADE_SIZE_MIN: float = 0.14

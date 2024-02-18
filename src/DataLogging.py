@@ -96,10 +96,13 @@ def data_log_mode():
     if not os.path.exists(const.P_LOG_PATH):
         os.makedirs(const.P_LOG_PATH)
 
+    # Prompt to enter the new experiment name
+    experiment = input("Enter the experiment name: ")
+
     # Create the logging file target
     data_path = os.path.join(
         const.P_LOG_PATH,
-        const.P_EXPERIMENT_FILE_WRITE,
+        experiment,
     )
     if os.path.exists(data_path):
         if query_to_overwrite():
