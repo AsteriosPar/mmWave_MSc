@@ -128,8 +128,6 @@ class ClusterTrack:
 
     Attributes
     ----------
-    id : int or None
-        Identifier for the track.
     N_est : int
         Estimated number of points in the cluster.
     spread_est : numpy.ndarray
@@ -186,7 +184,6 @@ class ClusterTrack:
     """
 
     def __init__(self, cluster: PointCluster):
-        self.id = None
         self.N_est = 0
         self.spread_est = np.zeros(const.MOTION_MODEL.KF_DIM[1])
         self.group_disp_est = (
@@ -370,7 +367,7 @@ class ClusterTrack:
 
         # If the variance between the predicted and measured position
         variance = z[:1] - self.state.inst.x[:1, 0]
-        if abs(variance.any()) > 0.6:
+        if abs(variance.any()) > 0.6 and self.lifetime == 0:
             self.state.inst.x[:1, 0] += variance * 0.4
 
     def update_lifetime(self, dt, reset=False):
@@ -537,8 +534,7 @@ class TrackBuffer:
         dist_matrix = np.empty((full_set.shape[0], len(self.effective_tracks)))
         associated_track_for = np.full(full_set.shape[0], None, dtype=object)
 
-        for track in self.effective_tracks:
-            j = track.id
+        for j, track in enumerate(self.effective_tracks):
             H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.inst.x).flatten()
             # Group residual covariance matrix
             C_g_j = track.state.inst.P[:6, :6] + track.get_Rm() + track.group_disp_est
@@ -577,7 +573,7 @@ class TrackBuffer:
         """
         for new_cluster in new_clusters:
             new_track = ClusterTrack(PointCluster(np.array(new_cluster)))
-            new_track.id = self.next_track_id
+            # new_track.id = self.next_track_id
             self.next_track_id += 1
             self.effective_tracks.append(new_track)
 
@@ -618,13 +614,7 @@ class TrackBuffer:
             if associated_track_for[i] is None:
                 unassigned = np.append(unassigned, [point], axis=0)
             else:
-                list_index = None
-                for index, track in enumerate(self.effective_tracks):
-                    if track.id == associated_track_for[i]:
-                        list_index = index
-                        break
-
-                clusters[list_index].append(point)
+                clusters[associated_track_for[i]].append(point)
         return unassigned, clusters
 
     def associate_points_to_tracks(self, full_set: np.array):
