@@ -7,7 +7,6 @@ import constants as const
 def preprocess_csv(experiment_name, threshold):
     input_path = os.path.join(const.P_LOG_PATH, experiment_name)
     output_path = os.path.join(const.P_PREPROCESS_PATH, experiment_name)
-    print("reached")
 
     for filename in os.listdir(input_path):
         # Ensure output directory exists
@@ -65,6 +64,94 @@ def preprocess_csv(experiment_name, threshold):
             )  # No header in the output CSV
 
 
-experiment_name = "test6"
-threshold = 7
-preprocess_csv(experiment_name, threshold)
+def preprocess_npy(experiment_name, threshold):
+    input_path = os.path.join(const.P_LOG_PATH, experiment_name)
+    output_path = os.path.join(const.P_PREPROCESS_PATH, experiment_name)
+
+    for filename in os.listdir(input_path):
+        # Ensure output directory exists
+        output_dir = os.path.dirname(os.path.join(output_path, filename))
+        os.makedirs(output_dir, exist_ok=True)
+
+        with open(os.path.join(input_path, filename), "r") as file:
+            # Read the CSV file without header
+            df = pd.read_csv(file, header=None)
+
+            # Randomly discard points within frames until the number of points per frame <= threshold
+            df["num_points"] = df.groupby(0)[0].transform(
+                "count"
+            )  # Assuming frame_id is in the first column
+            frames_to_reduce = df[0].unique()
+            for frame_id in frames_to_reduce:
+                frame_indices = df[df[0] == frame_id].index
+                while len(frame_indices) > threshold:
+                    index_to_drop = np.random.choice(frame_indices)
+                    df.drop(index_to_drop, inplace=True)
+                    frame_indices = df[df[0] == frame_id].index
+
+            # Padding
+            max_points = threshold
+            num_points_per_frame = df.groupby(0)[
+                0
+            ].count()  # Number of points per frame after discarding
+            for frame_id, num_points in num_points_per_frame.items():
+                if num_points < max_points:
+                    padding_rows = max_points - num_points
+                    padding_data = np.zeros(
+                        (padding_rows, df.shape[1])
+                    )  # Create padding data with zeros
+                    padding_data[:, 0] = frame_id  # Set frame_id in the first column
+                    df = pd.concat(
+                        [
+                            df[df[0] == frame_id],  # Keep existing data for the frame
+                            pd.DataFrame(padding_data),  # Add padding data
+                            df[df[0] != frame_id],  # Add remaining data
+                        ],
+                        ignore_index=True,
+                    )
+
+            # Drop the 'num_points' column
+            df.drop("num_points", axis=1, inplace=True)
+
+            # Convert DataFrame to NumPy array
+            processed_data = df.to_numpy()
+
+            # Save to output .npy file
+            np.save(
+                os.path.join(output_path, os.path.splitext(filename)[0] + ".npy"),
+                processed_data,
+            )
+
+
+def preprocess_single_frame(frame: np.array):
+    resized_matrix = []
+
+    frame_len = len(frame)
+
+    # Pad or cut
+    if frame_len < 64:
+        num_to_pad = 64 - frame_len
+        zero_arrays = np.zeros((num_to_pad, 5))
+        padded_data = np.concatenate((frame, zero_arrays), axis=0)
+    else:
+        padded_data = frame[:64]
+
+    # Sort
+    sorted_indices = np.argsort(padded_data[:, 0])
+    sorted_data = padded_data[sorted_indices]
+
+    # Resize to matrix
+    resized_matrix.append(sorted_data.reshape((8, 8, 5)))
+
+    return np.array(resized_matrix)
+
+
+experiment_name = "final2"
+threshold = 10
+# preprocess_csv(experiment_name, threshold)
+# preprocess_npy(experiment_name, threshold)
+
+data = np.load("./dataset/preprocessed/final2/4.npy")
+
+
+print(data)

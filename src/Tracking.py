@@ -640,6 +640,11 @@ class TrackBuffer:
             else:
                 track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
+
+                ######### Keypoint Estimation ##########
+                # Code here!
+                ########################################
+
                 # inner cluster separation
                 # new_inner_clusters.append(track.seek_inner_clusters())
 
