@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
+from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.patches import Patch
 
@@ -33,42 +34,99 @@ def calc_fade_square(track: ClusterTrack):
 
 
 class Visualizer:
-    def __init__(self):
+    def setup_subplot(self, subplot: Axes3D):
+        axis_dim = const.V_3D_AXIS
+        subplot.set_xlim(axis_dim[0][0], axis_dim[0][1])
+        subplot.set_ylim(axis_dim[1][0], axis_dim[1][1])
+        subplot.set_zlim(axis_dim[2][0], axis_dim[2][1])
+        subplot.set_xlabel("X")
+        subplot.set_ylabel("Y")
+        subplot.set_zlabel("Z")
+        subplot.invert_yaxis()
+        subplot.invert_xaxis()
+        return subplot.scatter([], [], [])
+
+    def __init__(self, raw_cloud=False, b_boxes=False, posture=False):
         self.dynamic_art = []
         fig = plt.figure()
-        axis_3d = const.V_3D_AXIS
+        plots_num = sum([raw_cloud, b_boxes, posture])
+        plots_index = 1
 
         # Create subplot of raw pointcloud
-        self.ax_raw = fig.add_subplot(121, projection="3d")
-        self.scatter_raw = self.ax_raw.scatter([], [], [])
-        self.ax_raw.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
-        self.ax_raw.set_ylim(0, axis_3d[1])
-        self.ax_raw.set_zlim(0, axis_3d[2])
-        self.ax_raw.set_title("Scatter plot of raw Point Cloud")
+        if raw_cloud:
+            self.ax_raw = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.raw_scatter = self.setup_subplot(self.ax_raw)
+            self.ax_raw.set_title("Scatter plot of raw Point Cloud")
+            plots_index += 1
 
-        # Create subplot of tracks and predictions
-        self.ax = fig.add_subplot(122, projection="3d")
-        self.scatter = self.ax.scatter([], [], [])
-        self.ax.set_xlim(-axis_3d[0] / 2, axis_3d[0] / 2)
-        self.ax.set_ylim(-1, axis_3d[1])
-        self.ax.set_zlim(0, axis_3d[2])
-        self.ax.set_xlabel("X")
-        self.ax.set_ylabel("Y")
-        self.ax.set_zlabel("Z")
-        self.ax.invert_yaxis()
-        self.ax.invert_xaxis()
-        legend_handles = [
-            Patch(color="red", label="Predicted Track"),
-            Patch(color="green", label="Measured Track"),
-        ]
-        self.ax.legend(handles=legend_handles)
+        if b_boxes:
+            # Create subplot of tracks and predictions
+            self.ax_bb = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.setup_subplot(self.ax_bb)
+            self.bb_scatter = None
+            legend_handles = [
+                Patch(color="red", label="Predicted Track"),
+                Patch(color="green", label="Measured Track"),
+            ]
+            self.ax_bb.legend(handles=legend_handles)
+            plots_index += 1
+
+        if posture:
+            self.ax_post = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.setup_subplot(self.ax_post)
+            self.post_scatter = None
+            # Define connections and keypoints
+            self.connections = [
+                (0, 1),  # SpineBase to SpineMid
+                (1, 2),  # SpineMid to Neck
+                (2, 3),  # Neck to Head
+                (2, 4),  # Neck to ShoulderLeft
+                (2, 7),  # Neck to ShoulderRight
+                (4, 5),  # ShoulderLeft to ElbowLeft
+                (5, 6),  # ElbowLeft to WristLeft
+                (7, 8),  # ShoulderRight to ElbowRight
+                (8, 9),  # ElbowRight to WristRight
+                (0, 14),  # SpineBase to HipRight
+                (14, 15),  # HipRight to KneeRight
+                (15, 16),  # KneeRight to AnkleRight
+                (16, 17),  # AnkleRight to FootRight
+                (0, 10),  # SpineBase to HipLeft
+                (10, 11),  # HipLeft to KneeLeft
+                (11, 12),  # KneeLeft to AnkleLeft
+                (12, 13),  # AnkleLeft to FootLeft
+                (2, 18),  # Neck to SpineShoulder
+            ]
+
+            # Define keypoint colors
+            self.keypoint_colors = [
+                "blue",  # SpineBase,
+                "blue",  # SpineMid,
+                "blue",  # Neck,
+                "red",  # Head,
+                "blue",  # ShoulderLeft,
+                "green",  # ElbowLeft,
+                "green",  # WristLeft,
+                "blue",  # ShoulderRight,
+                "green",  # ElbowRight,
+                "green",  # WristRight,
+                "blue",  # HipLeft,
+                "green",  # KneeLeft,
+                "green",  # AnkleLeft,
+                "green",  # FootLeft,
+                "blue",  # HipRight,
+                "green",  # KneeRight,
+                "green",  # AnkleRight,
+                "green",  # FootRight,
+                "blue",  # SpineShoulder
+            ]
+            plots_index += 1
 
         plt.show(block=False)
 
     def clear(self):
         # Remove pointcloud
-        if self.scatter is not None:
-            self.scatter.remove()
+        if self.bb_scatter is not None:
+            self.bb_scatter.remove()
 
         # Remove bounding boxes
         for collection in self.dynamic_art:
@@ -76,12 +134,12 @@ class Visualizer:
         self.dynamic_art = []
 
         # Remove screen fading
-        for patch in self.ax.patches:
+        for patch in self.ax_bb.patches:
             patch.remove()
 
     def update_raw(self, x, y, z):
         # Update the data in the 3D scatter plot
-        self.scatter_raw._offsets3d = (x, y, z)
+        self.raw_scatter._offsets3d = (x, y, z)
         plt.draw()
 
     def _draw_bounding_box(self, x, color="gray", fill=0):
@@ -118,7 +176,7 @@ class Visualizer:
         ]
 
         cube = Poly3DCollection(faces, color=[color], alpha=fill)
-        self.ax.add_collection3d(cube)
+        self.ax_bb.add_collection3d(cube)
         return cube
 
     def draw_fading_window(self, track):
@@ -132,10 +190,10 @@ class Visualizer:
 
         # Create a Poly3DCollection
         rectangle = Poly3DCollection([vertices], facecolors="black", alpha=0.8)
-        self.ax.add_collection3d(rectangle)
+        self.ax_bb.add_collection3d(rectangle)
         return rectangle
 
-    def update(self, trackbuffer: TrackBuffer):
+    def update_bb(self, trackbuffer: TrackBuffer):
         x_all = np.array([])  # Initialize as empty NumPy arrays
         y_all = np.array([])
         z_all = np.array([])
@@ -144,7 +202,7 @@ class Visualizer:
         for track in trackbuffer.effective_tracks:
             # We want to visualize only new points.
             # if track.lifetime == 0:
-            # coords = track.cluster.pointcloud
+            # coords = track.batch.effective_data
             # x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
             # # Update pointclouds with different colors for different clusters
@@ -167,10 +225,41 @@ class Visualizer:
             # self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot
-        self.scatter = self.ax.scatter(x_all, y_all, z_all, c=color_all, marker="o")
-        self.ax.set_title(
+        self.bb_scatter = self.ax_bb.scatter(
+            x_all, y_all, z_all, c=color_all, marker="o"
+        )
+        self.ax_bb.set_title(
             f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
         )
+
+    def update_posture(self, keypoints):
+        self.ax_post.clear()
+        self.setup_subplot(self.ax_post)
+        reshaped_data = keypoints.reshape(3, -1)
+
+        for connection in self.connections:
+            keypoint_1 = connection[0]
+            keypoint_2 = connection[1]
+
+            x_values = [reshaped_data[0][keypoint_1], reshaped_data[0][keypoint_2]]
+            y_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
+            z_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
+
+            self.ax_post.plot(x_values, y_values, z_values, color="black")
+
+        for keypoint_index in range(len(reshaped_data[0])):
+            color = self.keypoint_colors[keypoint_index]
+            marker = (
+                "o" if keypoint_index != 3 else "s"
+            )  # Use square marker for the head
+            self.post_scatter = self.ax_post.scatter(
+                reshaped_data[0][keypoint_index],
+                reshaped_data[1][keypoint_index],
+                reshaped_data[2][keypoint_index],
+                c=color,
+                marker=marker,
+                s=100 if keypoint_index == 3 else 50,  # Larger size for the head
+            )
 
     def draw(self):
         plt.draw()
@@ -184,8 +273,8 @@ class ScreenAdapter:
         self.view.setAspectLocked()
         self.view.getViewBox().setBackgroundColor((255, 255, 255))
         self.view.setRange(
-            xRange=(-const.V_3D_AXIS[0] / 2, const.V_3D_AXIS[0] / 2),
-            yRange=(const.M_HEIGHT, const.V_3D_AXIS[2]),
+            xRange=(-const.SCREEN_SIZE[0] / 2, const.SCREEN_SIZE[0] / 2),
+            yRange=(const.SCREEN_HEIGHT, const.SCREEN_SIZE[1]),
         )
         self.view.invertX()
         self.win.showMaximized()

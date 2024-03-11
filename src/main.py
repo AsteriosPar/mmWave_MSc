@@ -16,6 +16,7 @@ from Tracking import (
     TrackBuffer,
     BatchedData,
 )
+from PostureEstimation import PostureEstimation
 
 OFFLINE = 0
 ONLINE = 1
@@ -44,9 +45,10 @@ def main():
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
-        visual = Visualizer()
+        visual = Visualizer(True, True, True)
 
     trackbuffer = TrackBuffer()
+    model = PostureEstimation(const.P_MODEL_PATH)
     batch = BatchedData()
 
     # Disable screen sleep/screensaver
@@ -89,6 +91,15 @@ def main():
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
 
+                        # Estimate posture
+                        # keypoints = []
+                        for track in trackbuffer.effective_tracks:
+                            keypoints = model.estimate_posture(
+                                track.batch.effective_data
+                            )
+                            visual.update_posture(keypoints)
+                            break
+
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)
                     else:
@@ -96,7 +107,7 @@ def main():
                         # update the raw data scatter plot
                         visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                         # Update visualization graphs
-                        visual.update(trackbuffer)
+                        visual.update_bb(trackbuffer)
                         visual.draw()
 
                     t_code = time.time() - t0

@@ -8,6 +8,7 @@ PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
+P_MODEL_PATH = "../MARS/model/MARS.h5"
 P_DATA_PATH = "./dataset/"
 P_LOG_PATH = f"./{P_DATA_PATH}/log/"
 P_PREPROCESS_PATH = f"./{P_DATA_PATH}/preprocessed/"
@@ -16,7 +17,7 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Experiment specifications
-P_EXPERIMENT_FILE_READ = "demo_correct"
+P_EXPERIMENT_FILE_READ = "intensity1"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
@@ -26,8 +27,8 @@ M_Z = 1.55
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-M_SIZE = [1.6, 0.9]  # Monitor Approximation
-M_HEIGHT = 0.8
+SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
+SCREEN_HEIGHT = 0.8
 
 # Sensor Attributes
 S_HEIGHT = 1.8
@@ -35,7 +36,8 @@ S_TILT = -7  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
-V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 8.0, M_HEIGHT + (M_SIZE[1] / V_SCALLING)]
+
+V_3D_AXIS = [[-2, 2], [0, 8], [0, 4]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
 V_SCREEN_FADE_SIZE_MIN: float = 0.14
 V_SCREEN_FADE_WEIGHT: float = (
@@ -172,11 +174,11 @@ class CONST_VEL_MODEL:
         )
 
 
-ENABLE_STATIC_CLUTTER = True
+ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
-SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = True
+SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

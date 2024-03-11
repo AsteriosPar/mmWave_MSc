@@ -30,8 +30,8 @@ class BatchedData:
     """
 
     def __init__(self):
-        self.buffer = RingBuffer(const.FB_FRAMES_BATCH + 1, np.empty((0, 6)))
-        self.effective_data = np.empty((0, 6))
+        self.buffer = RingBuffer(const.FB_FRAMES_BATCH + 1, np.empty((0, 8)))
+        self.effective_data = np.empty((0, 8))
         self.size = self.buffer.size
 
     def add_frame(self, new_data: np.array):
@@ -107,11 +107,11 @@ class PointCluster:
         """
         self.pointcloud = pointcloud
         self.point_num = pointcloud.shape[0]
-        self.centroid = np.mean(pointcloud, axis=0)
-        self.min_vals = np.min(pointcloud, axis=0)
-        self.max_vals = np.max(pointcloud, axis=0)
+        self.centroid = np.mean(pointcloud[:, :6], axis=0)
+        self.min_vals = np.min(pointcloud[:, :6], axis=0)
+        self.max_vals = np.max(pointcloud[:, :6], axis=0)
 
-        if math.sqrt(np.sum((self.centroid[3:] ** 2))) < const.TR_VEL_THRES:
+        if math.sqrt(np.sum((self.centroid[3:6] ** 2))) < const.TR_VEL_THRES:
             self.status = STATIC
         else:
             self.status = DYNAMIC
@@ -310,6 +310,7 @@ class ClusterTrack:
             2D NumPy array representing the point cloud.
         """
         self.cluster = PointCluster(pointcloud)
+        self.batch.add_frame(self.cluster.pointcloud)
         self._estimate_point_num()
         self._estimate_measurement_spread()
         self._estimate_group_disp_matrix()
@@ -440,7 +441,7 @@ class TrackBuffer:
 
     Methods
     -------
-    update_status()
+    maintain_tracks()
         Update the status of tracks based on their lifetime.
 
     update_ef_tracks()
@@ -475,15 +476,15 @@ class TrackBuffer:
         """
         Initialize TrackBuffer with empty lists for tracks and effective tracks.
         """
-        self.tracks: List[ClusterTrack] = []
+        # self.tracks: List[ClusterTrack] = []
         self.effective_tracks: List[ClusterTrack] = []
         self.next_track_id = 0
         self.dt = 0
         self.t = time.time()
 
-    def update_status(self):
+    def maintain_tracks(self):
         """
-        Update the status of tracks based on their mobility and lifetime.
+        Update the status of tracks based on their mobility and lifetime. Then update the list of effective tracks.
         """
         for track in self.effective_tracks:
             if track.cluster.status == DYNAMIC:
@@ -494,10 +495,6 @@ class TrackBuffer:
             if track.lifetime > lifetime:
                 track.status = INACTIVE
 
-    def update_ef_tracks(self):
-        """
-        Update the list of effective tracks.
-        """
         self.effective_tracks[:] = [
             track for track in self.effective_tracks if track.status != INACTIVE
         ]
@@ -541,7 +538,7 @@ class TrackBuffer:
 
             for i, point in enumerate(full_set):
                 # Innovation for each measurement
-                y_ij = np.array(point) - H_i
+                y_ij = np.array(point[:6]) - H_i
 
                 # Distance function (d^2)
                 dist_matrix[i][j] = np.log(np.abs(np.linalg.det(C_g_j))) + np.dot(
@@ -605,7 +602,7 @@ class TrackBuffer:
         tuple
             Tuple containing unassigned points and clustered clouds.
         """
-        unassigned = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+        unassigned = np.empty((0, 8), dtype="float")
         clusters = [[] for _ in range(len(self.effective_tracks))]
         # Simple matrix has len = len(full_set) and has the index of the chosen track.
         associated_track_for = self._calc_dist_fun(full_set)
@@ -641,10 +638,6 @@ class TrackBuffer:
                 track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
 
-                ######### Keypoint Estimation ##########
-                # Code here!
-                ########################################
-
                 # inner cluster separation
                 # new_inner_clusters.append(track.seek_inner_clusters())
 
@@ -656,7 +649,7 @@ class TrackBuffer:
 
     def track(self, pointcloud, batch: BatchedData):
         """
-        Perform the tracking process including prediction, association, status update, and clustering.
+        Perform the tracking process including prediction, association, maintenance, update, and clustering.
 
         Parameters
         ----------
@@ -674,8 +667,7 @@ class TrackBuffer:
 
         # Association Step
         unassigned = self.associate_points_to_tracks(pointcloud)
-        self.update_status()
-        self.update_ef_tracks()
+        self.maintain_tracks()
 
         # Update Step
         self.update_all()

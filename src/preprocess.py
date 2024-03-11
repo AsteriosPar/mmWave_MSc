@@ -146,12 +146,12 @@ def preprocess_single_frame(frame: np.array):
     return np.array(resized_matrix)
 
 
-experiment_name = "final2"
-threshold = 10
-# preprocess_csv(experiment_name, threshold)
-# preprocess_npy(experiment_name, threshold)
+# experiment_name = "final2"
+# threshold = 10
+# # preprocess_csv(experiment_name, threshold)
+# # preprocess_npy(experiment_name, threshold)
 
-data = np.load("./dataset/preprocessed/final2/4.npy")
+# data = np.load("./dataset/preprocessed/final2/4.npy")
 
 
-print(data)
+# print(data)
