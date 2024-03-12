@@ -78,10 +78,10 @@ class Visualizer:
             # Define connections and keypoints
             self.connections = [
                 (0, 1),  # SpineBase to SpineMid
-                (1, 2),  # SpineMid to Neck
+                (1, 18),  # SpineMid to SpineShoulder
                 (2, 3),  # Neck to Head
-                (2, 4),  # Neck to ShoulderLeft
-                (2, 7),  # Neck to ShoulderRight
+                (18, 4),  # SpineShoulder to ShoulderLeft
+                (18, 7),  # SpineShoulder to ShoulderRight
                 (4, 5),  # ShoulderLeft to ElbowLeft
                 (5, 6),  # ElbowLeft to WristLeft
                 (7, 8),  # ShoulderRight to ElbowRight
