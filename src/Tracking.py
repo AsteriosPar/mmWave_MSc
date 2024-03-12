@@ -13,70 +13,73 @@ STATIC = True
 DYNAMIC = False
 
 
-class BatchedData:
+class BatchedData(RingBuffer):
     """
     A class to manage and combine frames into a batch for a more resourceful analysis.
 
     Attributes:
     ----------
-    - counter (int): A counter to keep track of the number of frames added.
     - effective_data (numpy.ndarray): An array to store effective data frames.
 
     Methods:
     -------
-    - empty(): Reset the counter and create an empty effective_data array.
-    - add_frame(new_data: numpy.ndarray): Add a new frame of data to the effective_data array.
-    - is_complete() -> bool: Check if the batch is complete
+    - empty(): Reset the buffer and create an empty effective_data array.
+    - add_frame(new_data: numpy.ndarray): Add a new frame of data to the buffer.
+    - clear(): Clear the buffer and reset effective_data.
+    - change_buffer_size(new_size): Change the size of the buffer.
     """
 
     def __init__(self):
-        self.buffer = RingBuffer(const.FB_FRAMES_BATCH + 1, np.empty((0, 8)))
+        super().__init__(const.FB_FRAMES_BATCH + 1, init_val=np.empty((0, 8)))
         self.effective_data = np.empty((0, 8))
-        self.size = self.buffer.size
 
     def add_frame(self, new_data: np.array):
         """
-        Add a new frame of data to the effective_data array.
+        Add a new frame of data to the buffer.
         """
-        while len(self.buffer.buffer) >= self.size:
-            self.buffer.buffer.popleft()
-        self.buffer.append(new_data)
-        self.effective_data = np.concatenate(list(self.buffer.buffer), axis=0)
+        while len(self.buffer) >= self.size:
+            self.buffer.popleft()
+        super().append(new_data)
+        self.effective_data = np.concatenate(list(self.buffer), axis=0)
 
     def clear(self):
-        self.buffer.buffer.clear()
+        """
+        Clear the buffer and reset effective_data.
+        """
+        self.buffer.clear()
         self.effective_data = np.array([])
 
     def change_buffer_size(self, new_size):
+        """
+        Change the size of the buffer.
+        """
         self.size = new_size
 
 
-class KalmanState:
+class KalmanState(KalmanFilter):
     """
     A class representing the state of a Kalman filter for motion tracking.
 
     Attributes:
     ----------
-    - inst (filterpy.kalman.KalmanFilter): The Kalman filter instance.
     - centroid: The centroid of the track used for initializing this Kalman filter instance.
 
-    Note: In this class there is no control function B
-
+    Methods:
+    -------
+    - __init__(centroid: np.ndarray): Initialize the Kalman filter with default parameters based on the centroid.
     """
 
-    def __init__(self, centroid):
-        self.inst = KalmanFilter(
-            dim_x=const.MOTION_MODEL.KF_DIM[0],
-            dim_z=const.MOTION_MODEL.KF_DIM[1],
+    def __init__(self, centroid: np.ndarray):
+        super().__init__(
+            dim_x=const.MOTION_MODEL.KF_DIM[0], dim_z=const.MOTION_MODEL.KF_DIM[1]
         )
-        self.inst.F = const.MOTION_MODEL.KF_F(1)
-        self.inst.H = const.MOTION_MODEL.KF_H
-        self.inst.Q = const.MOTION_MODEL.KF_Q_DISCR(1)
-        # We assume independent noise in the x,y,z variables of equal standard deviations.
-        self.inst.R = np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_R_STD**2
-        # For initial values
-        self.inst.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
-        self.inst.P = np.eye(const.MOTION_MODEL.KF_DIM[0]) * const.KF_P_INIT
+
+        self.F = const.MOTION_MODEL.KF_F(1)
+        self.H = const.MOTION_MODEL.KF_H
+        self.Q = const.MOTION_MODEL.KF_Q_DISCR(1)
+        self.R = np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_R_STD**2
+        self.x = np.array([const.MOTION_MODEL.STATE_VEC(centroid)]).T
+        self.P = np.eye(const.MOTION_MODEL.KF_DIM[0]) * const.KF_P_INIT
 
 
 class PointCluster:
@@ -202,7 +205,7 @@ class ClusterTrack:
         )
         self.width_buffer = RingBuffer(const.FB_WIDTH_FRAME_PERIOD)
         # NOTE: For visualizing purposes only
-        self.predict_x = self.state.inst.x
+        self.predict_x = self.state.x
 
     def predict_state(self, dt: float):
         """
@@ -213,11 +216,11 @@ class ClusterTrack:
         dt : float
             Time multiplier for the prediction.
         """
-        self.state.inst.predict(
+        self.state.predict(
             F=const.MOTION_MODEL.KF_F(dt),
             Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
         )
-        self.predict_x = self.state.inst.x
+        self.predict_x = self.state.x
 
     def _estimate_point_num(self):
         """
@@ -363,13 +366,13 @@ class ClusterTrack:
         Update the state of the Kalman filter based on the associated measurement (pointcloud centroid).
         """
         z = np.array(self.cluster.centroid)
-        x_prev = self.state.inst.x[:2, 0]
-        self.state.inst.update(z, R=self.get_Rc())
+        x_prev = self.state.x[:2, 0]
+        self.state.update(z, R=self.get_Rc())
 
         # If the variance between the predicted and measured position
-        variance = z[:1] - self.state.inst.x[:1, 0]
+        variance = z[:1] - self.state.x[:1, 0]
         if abs(variance.any()) > 0.6 and self.lifetime == 0:
-            self.state.inst.x[:1, 0] += variance * 0.4
+            self.state.x[:1, 0] += variance * 0.4
 
     def update_lifetime(self, dt, reset=False):
         """
@@ -532,9 +535,9 @@ class TrackBuffer:
         associated_track_for = np.full(full_set.shape[0], None, dtype=object)
 
         for j, track in enumerate(self.effective_tracks):
-            H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.inst.x).flatten()
+            H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.x).flatten()
             # Group residual covariance matrix
-            C_g_j = track.state.inst.P[:6, :6] + track.get_Rm() + track.group_disp_est
+            C_g_j = track.state.P[:6, :6] + track.get_Rm() + track.group_disp_est
 
             for i, point in enumerate(full_set):
                 # Innovation for each measurement

@@ -92,7 +92,7 @@ def main():
                         trackbuffer.track(effective_data, batch)
 
                         # Estimate posture
-                        # keypoints = []
+                        # keypocts = []
                         for track in trackbuffer.effective_tracks:
                             keypoints = model.estimate_posture(
                                 track.batch.effective_data

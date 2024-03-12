@@ -14,9 +14,9 @@ from Utils import calc_projection_points
 def calc_fade_square(track: ClusterTrack):
     coords = np.array(
         [
-            track.state.inst.x[0],
-            track.state.inst.x[1],
-            track.state.inst.x[2],
+            track.state.x[0],
+            track.state.x[1],
+            track.state.x[2],
         ]
     ).flatten()
     center_x = calc_projection_points(value=coords[0], y=coords[1])
@@ -214,7 +214,7 @@ class Visualizer:
             # )
 
             self.dynamic_art.append(
-                self._draw_bounding_box(track.state.inst.x, color=track.color, fill=0.5)
+                self._draw_bounding_box(track.state.x, color=track.color, fill=0.5)
             )
             self.dynamic_art.append(
                 self._draw_bounding_box(track.predict_x, color="red")
