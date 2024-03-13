@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import constants as const
+import csv
 
 
 def preprocess_csv(experiment_name, threshold):
@@ -123,25 +124,40 @@ def preprocess_npy(experiment_name, threshold):
             )
 
 
+def find_intensity_normalizers(experiment_name="fixed"):
+    intensities = []
+    input_path = os.path.join(const.P_LOG_PATH, experiment_name)
+    for filename in os.listdir(input_path):
+        with open(os.path.join(input_path, filename), "r") as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                intensities.append(float(row[5]))
+
+    mean = np.mean(intensities)
+    std_dev = np.std(intensities)
+
+    print(f"Mean: {mean}, STD: {std_dev}")
+
+
 def preprocess_single_frame(frame: np.array):
     resized_matrix = []
+    for track_cloud in frame:
+        track_cloud_len = len(track_cloud)
 
-    frame_len = len(frame)
+        # Pad or cut
+        if track_cloud_len < 64:
+            num_to_pad = 64 - track_cloud_len
+            zero_arrays = np.zeros((num_to_pad, 5))
+            padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
+        else:
+            padded_data = track_cloud[:64]
 
-    # Pad or cut
-    if frame_len < 64:
-        num_to_pad = 64 - frame_len
-        zero_arrays = np.zeros((num_to_pad, 5))
-        padded_data = np.concatenate((frame, zero_arrays), axis=0)
-    else:
-        padded_data = frame[:64]
+        # Sort
+        sorted_indices = np.argsort(padded_data[:, 0])
+        sorted_data = padded_data[sorted_indices]
 
-    # Sort
-    sorted_indices = np.argsort(padded_data[:, 0])
-    sorted_data = padded_data[sorted_indices]
-
-    # Resize to matrix
-    resized_matrix.append(sorted_data.reshape((8, 8, 5)))
+        # Resize to matrix
+        resized_matrix.append(sorted_data.reshape((8, 8, 5)))
 
     return np.array(resized_matrix)
 
@@ -155,3 +171,4 @@ def preprocess_single_frame(frame: np.array):
 
 
 # print(data)
+find_intensity_normalizers()

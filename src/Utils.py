@@ -326,6 +326,9 @@ def preprocess_data(detObj):
     ).T
     ef_data = np.empty((0, 8), dtype="float")
 
+    mu = const.INTENSITY_MU
+    sigma = const.INTENSITY_STD
+
     for index in range(len(input_data)):
 
         # Transform the radial velocity into Cartesian
@@ -352,9 +355,12 @@ def preprocess_data(detObj):
             )
         )
 
+        # Normalize Intensity Values
+        norm_intensity = input_data[index, 4] - mu / sigma
+
         # Add radial velocity and intensity for later use
         transformed_point = np.append(
-            transformed_point, (input_data[index, 3], input_data[index, 4])
+            transformed_point, (input_data[index, 3], norm_intensity)
         )
 
         # Perform scene constraints filtering

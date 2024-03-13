@@ -102,6 +102,11 @@ KF_EST_POINTNUM = 30
 KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]  # Revise
 KF_A_SPR = 0.9  # Revise
 
+############### Model ####################
+# Intensity Normalization
+INTENSITY_MU = 193
+INTENSITY_STD = 252
+
 
 # Motion Models
 class CONST_ACC_MODEL:
