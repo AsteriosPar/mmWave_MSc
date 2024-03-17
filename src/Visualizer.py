@@ -232,38 +232,40 @@ class Visualizer:
             f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
         )
 
-    def update_posture(self, keypoints):
+    def update_posture(self, keypoints: np.array):
+        # NOTE: the keypoints have a shape (num_of_tracks, 19)
         self.ax_post.clear()
         self.setup_subplot(self.ax_post)
-        reshaped_data = keypoints.reshape(3, -1)
+        for track_id in range(len(keypoints)):
+            reshaped_data = keypoints[track_id][:].reshape(3, -1)
 
-        for connection in self.connections:
-            keypoint_1 = connection[0]
-            keypoint_2 = connection[1]
+            for connection in self.connections:
+                keypoint_1 = connection[0]
+                keypoint_2 = connection[1]
 
-            x_values = [reshaped_data[0][keypoint_1], reshaped_data[0][keypoint_2]]
-            y_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
-            z_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
+                x_values = [reshaped_data[0][keypoint_1], reshaped_data[0][keypoint_2]]
+                y_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
+                z_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
 
-            self.ax_post.plot(x_values, y_values, z_values, color="black")
+                self.ax_post.plot(x_values, y_values, z_values, color="black")
 
-        for keypoint_index in range(len(reshaped_data[0])):
-            color = self.keypoint_colors[keypoint_index]
-            marker = (
-                "o" if keypoint_index != 3 else "s"
-            )  # Use square marker for the head
-            self.post_scatter = self.ax_post.scatter(
-                reshaped_data[0][keypoint_index],
-                reshaped_data[1][keypoint_index],
-                reshaped_data[2][keypoint_index],
-                c=color,
-                marker=marker,
-                s=100 if keypoint_index == 3 else 50,  # Larger size for the head
-            )
+            for keypoint_index in range(len(reshaped_data[0])):
+                color = self.keypoint_colors[keypoint_index]
+                marker = (
+                    "o" if keypoint_index != 3 else "s"
+                )  # Use square marker for the head
+                self.post_scatter = self.ax_post.scatter(
+                    reshaped_data[0][keypoint_index],
+                    reshaped_data[1][keypoint_index],
+                    reshaped_data[2][keypoint_index],
+                    c=color,
+                    marker=marker,
+                    s=100 if keypoint_index == 3 else 50,  # Larger size for the head
+                )
 
     def draw(self):
         plt.draw()
-        plt.pause(0.001)  # Pause for a short time to allow for updating
+        plt.pause(0.1)  # Pause for a short time to allow for updating
 
 
 class ScreenAdapter:

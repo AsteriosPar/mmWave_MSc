@@ -139,27 +139,24 @@ def find_intensity_normalizers(experiment_name="fixed"):
     print(f"Mean: {mean}, STD: {std_dev}")
 
 
-def preprocess_single_frame(frame: np.array):
-    resized_matrix = []
-    for track_cloud in frame:
-        track_cloud_len = len(track_cloud)
+def preprocess_single_frame(track_cloud: np.array):
 
-        # Pad or cut
-        if track_cloud_len < 64:
-            num_to_pad = 64 - track_cloud_len
-            zero_arrays = np.zeros((num_to_pad, 5))
-            padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
-        else:
-            padded_data = track_cloud[:64]
+    track_cloud_len = len(track_cloud)
 
-        # Sort
-        sorted_indices = np.argsort(padded_data[:, 0])
-        sorted_data = padded_data[sorted_indices]
+    # Pad or cut
+    if track_cloud_len < 64:
+        num_to_pad = 64 - track_cloud_len
+        zero_arrays = np.zeros((num_to_pad, 5))
+        padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
+    else:
+        padded_data = track_cloud[:64]
 
-        # Resize to matrix
-        resized_matrix.append(sorted_data.reshape((8, 8, 5)))
+    # Sort
+    sorted_indices = np.argsort(padded_data[:, 0])
+    sorted_data = padded_data[sorted_indices]
 
-    return np.array(resized_matrix)
+    # Resize to matrix
+    return sorted_data.reshape((8, 8, 5))
 
 
 # experiment_name = "final2"

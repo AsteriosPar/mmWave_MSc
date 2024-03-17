@@ -3,6 +3,8 @@ import time
 import os
 import cProfile
 import pstats
+import numpy as np
+import multiprocessing
 from PyQt5.QtWidgets import QApplication
 from wakepy import keep
 import constants as const
@@ -12,6 +14,7 @@ from Utils import (
     preprocess_data,
     read_next_frames,
 )
+from preprocess import preprocess_single_frame
 from Tracking import (
     TrackBuffer,
     BatchedData,
@@ -91,14 +94,19 @@ def main():
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
 
-                        # Estimate posture
-                        # keypocts = []
-                        for track in trackbuffer.effective_tracks:
-                            keypoints = model.estimate_posture(
-                                track.batch.effective_data
-                            )
-                            visual.update_posture(keypoints)
-                            break
+                        # frame_matrices = np.empty(0, dtype=object)
+                        frame_matrices = np.array(
+                            [
+                                preprocess_single_frame(
+                                    # NOTE: The inputs are in the form of [x, y, z, x', y', z', r', s]
+                                    track.batch.effective_data[:, [0, 1, 2, -2, -1]]
+                                )
+                                for track in trackbuffer.effective_tracks
+                            ]
+                        )
+                        frame_keypoints = model.estimate_posture(frame_matrices)
+
+                        visual.update_posture(frame_keypoints)
 
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)

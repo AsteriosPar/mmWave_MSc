@@ -11,11 +11,5 @@ class PostureEstimation:
     def __init__(self, model_dir):
         self.model = load_model(model_dir)
 
-    def estimate_posture(self, pointcloud):
-        # NOTE: The input is in the form of [x, y, z, x', y', z', r', s]
-        fixed_pointcloud = pointcloud[:, [0, 1, 2, -2, -1]]
-        feature_matrix = preprocess_single_frame(fixed_pointcloud)
-
-        predictions = self.model.predict(feature_matrix)
-
-        return predictions
+    def estimate_posture(self, frame_matrices):
+        return self.model.predict(frame_matrices)
