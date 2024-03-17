@@ -90,12 +90,15 @@ def read_next_frames(experiment_path, start=[0, 1]):
                         float(row[2]),
                         float(row[3]),
                         float(row[4]),
+                        float(row[5]),
                     ]
 
                     # Read only the frames in the specified range
                     if framenum in pointclouds:
                         # Append coordinates to the existing lists
-                        for key, value in zip(["x", "y", "z", "doppler"], coords):
+                        for key, value in zip(
+                            ["x", "y", "z", "doppler", "peakVal"], coords
+                        ):
                             pointclouds[framenum][key].append(value)
                     else:
                         # If not, create a new dictionary for the framenum
@@ -104,6 +107,7 @@ def read_next_frames(experiment_path, start=[0, 1]):
                             "y": [coords[1]],
                             "z": [coords[2]],
                             "doppler": [coords[3]],
+                            "peakVal": [coords[4]],
                         }
 
                     if len(pointclouds) == const.FB_READ_BUFFER_SIZE:
@@ -317,48 +321,59 @@ def preprocess_data(detObj):
         - Cartesian velocity along the z-axis
 
     """
-    input_data = np.vstack((detObj["x"], detObj["y"], detObj["z"], detObj["doppler"])).T
+    input_data = np.vstack(
+        (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"], detObj["peakVal"])
+    ).T
+    ef_data = np.empty((0, 8), dtype="float")
 
-    ef_data = np.empty((0, const.MOTION_MODEL.KF_DIM[1]), dtype="float")
+    mu = const.INTENSITY_MU
+    sigma = const.INTENSITY_STD
 
     for index in range(len(input_data)):
-        # Performs doppler check
-        if not (input_data[index][3] == 0 and const.ENABLE_STATIC_CLUTTER):
-            # Transform the radial velocity into Cartesian
-            r = math.sqrt(
-                input_data[index, 0] ** 2
-                + input_data[index, 1] ** 2
-                + input_data[index, 2] ** 2
-            )
-            vx = input_data[index, 3] * input_data[index, 0] / r
-            vy = input_data[index, 3] * input_data[index, 1] / r
-            vz = input_data[index, 3] * input_data[index, 2] / r
 
-            # Translate points to new coordinate system
-            transformed_point = point_transform_to_standard_axis(
-                np.array(
-                    [
-                        input_data[index, 0],
-                        input_data[index, 1],
-                        input_data[index, 2],
-                        vx,
-                        vy,
-                        vz,
-                    ]
-                )
-            )
+        # Transform the radial velocity into Cartesian
+        r = math.sqrt(
+            input_data[index, 0] ** 2
+            + input_data[index, 1] ** 2
+            + input_data[index, 2] ** 2
+        )
+        vx = input_data[index, 3] * input_data[index, 0] / r
+        vy = input_data[index, 3] * input_data[index, 1] / r
+        vz = input_data[index, 3] * input_data[index, 2] / r
 
-            # Perform scene constraints filtering
-            # TODO: Add more scene constraints if necessary
-            if (
-                transformed_point[2] <= 2
-                and transformed_point[2] > -0.1
-                and transformed_point[1] > 0
-            ):
-                ef_data = np.append(
-                    ef_data,
-                    [transformed_point],
-                    axis=0,
-                )
+        # Translate points to new coordinate system
+        transformed_point = point_transform_to_standard_axis(
+            np.array(
+                [
+                    input_data[index, 0],
+                    input_data[index, 1],
+                    input_data[index, 2],
+                    vx,
+                    vy,
+                    vz,
+                ]
+            )
+        )
+
+        # Normalize Intensity Values
+        norm_intensity = input_data[index, 4] - mu / sigma
+
+        # Add radial velocity and intensity for later use
+        transformed_point = np.append(
+            transformed_point, (input_data[index, 3], norm_intensity)
+        )
+
+        # Perform scene constraints filtering
+        # TODO: Add more scene constraints if necessary
+        if (
+            transformed_point[2] <= 2
+            and transformed_point[2] > -0.1
+            and transformed_point[1] > 0
+        ):
+            ef_data = np.append(
+                ef_data,
+                [transformed_point],
+                axis=0,
+            )
 
     return ef_data

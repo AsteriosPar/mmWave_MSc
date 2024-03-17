@@ -3,6 +3,8 @@ import time
 import os
 import cProfile
 import pstats
+import numpy as np
+import multiprocessing
 from PyQt5.QtWidgets import QApplication
 from wakepy import keep
 import constants as const
@@ -12,10 +14,12 @@ from Utils import (
     preprocess_data,
     read_next_frames,
 )
+from preprocess import preprocess_single_frame
 from Tracking import (
     TrackBuffer,
     BatchedData,
 )
+from PostureEstimation import PostureEstimation
 
 OFFLINE = 0
 ONLINE = 1
@@ -44,9 +48,10 @@ def main():
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
-        visual = Visualizer()
+        visual = Visualizer(True, True, True)
 
     trackbuffer = TrackBuffer()
+    model = PostureEstimation(const.P_MODEL_PATH)
     batch = BatchedData()
 
     # Disable screen sleep/screensaver
@@ -89,6 +94,20 @@ def main():
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
 
+                        # frame_matrices = np.empty(0, dtype=object)
+                        frame_matrices = np.array(
+                            [
+                                preprocess_single_frame(
+                                    # NOTE: The inputs are in the form of [x, y, z, x', y', z', r', s]
+                                    track.batch.effective_data[:, [0, 1, 2, -2, -1]]
+                                )
+                                for track in trackbuffer.effective_tracks
+                            ]
+                        )
+                        frame_keypoints = model.estimate_posture(frame_matrices)
+
+                        visual.update_posture(frame_keypoints)
+
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)
                     else:
@@ -96,7 +115,7 @@ def main():
                         # update the raw data scatter plot
                         visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                         # Update visualization graphs
-                        visual.update(trackbuffer)
+                        visual.update_bb(trackbuffer)
                         visual.draw()
 
                     t_code = time.time() - t0

@@ -7,7 +7,8 @@ ONLINE = 1
 PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
-P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
+P_CONFIG_PATH = "./config_cases/mars_config.cfg"
+P_MODEL_PATH = "./src/model/MARS.h5"
 P_DATA_PATH = "./dataset/"
 P_LOG_PATH = f"./{P_DATA_PATH}/log/"
 P_PREPROCESS_PATH = f"./{P_DATA_PATH}/preprocessed/"
@@ -16,7 +17,7 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Experiment specifications
-P_EXPERIMENT_FILE_READ = "demo_correct"
+P_EXPERIMENT_FILE_READ = "new_config"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
@@ -26,16 +27,17 @@ M_Z = 1.55
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-M_SIZE = [1.6, 0.9]  # Monitor Approximation
-M_HEIGHT = 0.8
+SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
+SCREEN_HEIGHT = 0.8
 
 # Sensor Attributes
-S_HEIGHT = 1.8
-S_TILT = -7  # degrees (-180, 180)
+S_HEIGHT = 0.7
+S_TILT = 5  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
-V_3D_AXIS = [M_SIZE[0] / V_SCALLING, 8.0, M_HEIGHT + (M_SIZE[1] / V_SCALLING)]
+
+V_3D_AXIS = [[-1.25, 1.25], [0, 4], [0, 3]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
 V_SCREEN_FADE_SIZE_MIN: float = 0.14
 V_SCREEN_FADE_WEIGHT: float = (
@@ -46,14 +48,14 @@ V_BBOX_EYESIGHT_HEIGHT = 1.75
 
 
 ###### Frames and Buffering #######
-FB_FRAMES_SKIP = 0
+FB_FRAMES_SKIP = 15
 FB_EXPERIMENT_FILE_SIZE = 100
 FB_WRITE_BUFFER_SIZE = 20  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 20
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 6
-FB_FRAMES_BATCH_STATIC = 10
+FB_FRAMES_BATCH = 1
+FB_FRAMES_BATCH_STATIC = 2
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -63,7 +65,7 @@ FB_WIDTH_FRAME_PERIOD = 20
 DB_Z_WEIGHT = 0.3
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
-DB_MIN_SAMPLES_MIN = 11
+DB_MIN_SAMPLES_MIN = 20
 
 # Inner DBScan
 DB_POINTS_THRES = 40
@@ -99,6 +101,11 @@ KF_A_N = 0.9
 KF_EST_POINTNUM = 30
 KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]  # Revise
 KF_A_SPR = 0.9  # Revise
+
+############### Model ####################
+# Intensity Normalization
+INTENSITY_MU = 193
+INTENSITY_STD = 252
 
 
 # Motion Models
@@ -172,11 +179,11 @@ class CONST_VEL_MODEL:
         )
 
 
-ENABLE_STATIC_CLUTTER = True
+ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
 SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = True
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

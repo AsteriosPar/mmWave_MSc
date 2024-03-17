@@ -39,9 +39,8 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
 
             sys.stdout.write(f"\rFrame Number: {frameNumber}")
             sys.stdout.flush()
-
             t_code = time.time() - t0
-            t_sleep = max(0, SLEEPTIME - t_code)
+            t_sleep = max(0, SLEEPTIME / 2 - t_code)
             time.sleep(t_sleep)
 
     except KeyboardInterrupt:
@@ -64,6 +63,7 @@ def write_thread(queue: Queue, data_path, stop_event: Event):
                 "Y": detObj["y"],
                 "Z": detObj["z"],
                 "Doppler": detObj["doppler"],
+                "Intensity": detObj["peakVal"],
             }
 
             # # Store data in the data path
