@@ -4,7 +4,6 @@ import os
 import cProfile
 import pstats
 import numpy as np
-import multiprocessing
 from PyQt5.QtWidgets import QApplication
 from wakepy import keep
 import constants as const
@@ -12,7 +11,7 @@ from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer, ScreenAdapter
 from Utils import (
     preprocess_data,
-    read_next_frames,
+    OfflineManager,
 )
 from preprocess import preprocess_single_frame
 from Tracking import (
@@ -27,13 +26,13 @@ ONLINE = 1
 
 def main():
     if const.SYSTEM_MODE == OFFLINE:
-        experiment_path = os.path.join(const.P_LOG_PATH, const.P_EXPERIMENT_FILE_READ)
+        experiment_path = os.path.join(
+            f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}", const.P_EXPERIMENT_FILE_READ
+        )
         if not os.path.exists(experiment_path):
             raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
-        pointclouds, pointer, last_frame = read_next_frames(experiment_path)
-
-        frame_count = 0
+        sensor_data = OfflineManager(experiment_path)
         SLEEPTIME = 0.1  # config "frameCfg"
 
     else:
@@ -48,7 +47,7 @@ def main():
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
-        visual = Visualizer(True, True, True)
+        visual = Visualizer(True, False, False)
 
     trackbuffer = TrackBuffer()
     model = PostureEstimation(const.P_MODEL_PATH)
@@ -61,24 +60,14 @@ def main():
             try:
                 t0 = time.time()
                 if const.SYSTEM_MODE == OFFLINE:
-                    # If last_frame is None the offline experiment has reached its end or the experiment file was not found
-                    if last_frame is None:
+                    dataOk, _, detObj = sensor_data.get_data()
+
+                    if sensor_data.is_finished():
                         break
 
-                    frame_count += 1
-                    # If the read buffer is parsed, read more frames from the experiment file
-                    if frame_count > last_frame:
-                        pointclouds, pointer, last_frame = read_next_frames(
-                            experiment_path, pointer
-                        )
-                    # Get the data associated to the current frame
-                    if frame_count in pointclouds:
-                        dataOk = True
-                        detObj = pointclouds[frame_count]
-                    else:
+                    if not dataOk:
                         t_code = time.time() - t0
                         time.sleep(max(0, SLEEPTIME - t_code))
-                        dataOk = False
 
                 else:
                     # Online mode
@@ -106,16 +95,16 @@ def main():
                         )
                         frame_keypoints = model.estimate_posture(frame_matrices)
 
-                        visual.update_posture(frame_keypoints)
+                        # visual.update_posture(frame_keypoints)
 
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)
                     else:
-                        visual.clear()
+                        # visual.clear()
                         # update the raw data scatter plot
                         visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
                         # Update visualization graphs
-                        visual.update_bb(trackbuffer)
+                        # visual.update_bb(trackbuffer)
                         visual.draw()
 
                     t_code = time.time() - t0
