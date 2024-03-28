@@ -9,15 +9,22 @@ PIXEL_TO_METERS = 0.000265
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/mars_config.cfg"
 P_MODEL_PATH = "./src/model/MARS.h5"
-P_DATA_PATH = "./dataset/"
-P_LOG_PATH = f"./{P_DATA_PATH}/log/"
-P_PREPROCESS_PATH = f"./{P_DATA_PATH}/preprocessed/"
+P_DATA_PATH = "./dataset"
+
+P_LOG_PATH = f"{P_DATA_PATH}/log"
+P_PREPROCESS_PATH = f"{P_DATA_PATH}/preprocessed"
+P_FORMATTED_PATH = f"{P_DATA_PATH}/formatted"
+
+P_KINECT_DIR = "/kinect/"
+P_MMWAVE_DIR = "/mmWave/"
+
 P_PROFILING_PATH = "./profiling/"
+
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Experiment specifications
-P_EXPERIMENT_FILE_READ = "new_config"
+P_EXPERIMENT_FILE_READ = "time2"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
@@ -31,8 +38,8 @@ SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
 SCREEN_HEIGHT = 0.8
 
 # Sensor Attributes
-S_HEIGHT = 0.7
-S_TILT = 5  # degrees (-180, 180)
+S_HEIGHT = 0
+S_TILT = 0  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
@@ -48,13 +55,13 @@ V_BBOX_EYESIGHT_HEIGHT = 1.75
 
 
 ###### Frames and Buffering #######
-FB_FRAMES_SKIP = 15
+FB_FRAMES_SKIP = 0
 FB_EXPERIMENT_FILE_SIZE = 100
-FB_WRITE_BUFFER_SIZE = 20  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
-FB_READ_BUFFER_SIZE = 20
+FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
+FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 1
+FB_FRAMES_BATCH = 2
 FB_FRAMES_BATCH_STATIC = 2
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
@@ -182,7 +189,7 @@ class CONST_VEL_MODEL:
 ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
-SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
+SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
 SCREEN_CONNECTED = False
 
 
