@@ -5,6 +5,15 @@ import math
 import csv
 import numpy as np
 import os
+from keras.models import load_model
+
+
+class PostureEstimation:
+    def __init__(self, model_dir):
+        self.model = load_model(model_dir)
+
+    def estimate_posture(self, frame_matrices):
+        return self.model.predict(frame_matrices)
 
 
 class RingBuffer:
@@ -332,9 +341,6 @@ def preprocess_data(detObj):
     ).T
     ef_data = np.empty((0, 8), dtype="float")
 
-    # mu = const.INTENSITY_MU
-    # sigma = const.INTENSITY_STD
-
     for index in range(len(input_data)):
 
         # Transform the radial velocity into Cartesian
@@ -361,19 +367,11 @@ def preprocess_data(detObj):
             )
         )
 
-        # # Normalize Intensity Values
-        # norm_intensity = (input_data[index, 4] - mu) / sigma
-
-        # Add radial velocity and intensity for later use
-        # transformed_point = np.append(
-        #     transformed_point, (input_data[index, 3], norm_intensity)
-        # )
         transformed_point = np.append(
             transformed_point, (input_data[index, 3], input_data[index, 4])
         )
 
         # Perform scene constraints filtering
-        # TODO: Add more scene constraints if necessary
         if (
             transformed_point[2] <= 2
             and transformed_point[2] > -0.1

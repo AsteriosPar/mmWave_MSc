@@ -8,21 +8,16 @@ import threading
 import numpy as np
 from PyQt5.QtWidgets import QApplication
 from wakepy import keep
-import matplotlib.pyplot as plt
 import constants as const
 from queue import Empty
-from preprocess import preprocess_single_frame
 from ReadDataIWR1443 import ReadIWR14xx
 from Visualizer import Visualizer, ScreenAdapter
-from Utils import (
-    preprocess_data,
-    read_next_frames,
-)
+from Utils import preprocess_data, PostureEstimation
+from preprocessing import format_single_frame
 from Tracking import (
     TrackBuffer,
     BatchedData,
 )
-from PostureEstimation import PostureEstimation
 
 OFFLINE = 0
 ONLINE = 1
@@ -69,7 +64,7 @@ def track_targets(
             # frame_matrices = np.empty(0, dtype=object)
             frame_matrices = np.array(
                 [
-                    preprocess_single_frame(
+                    format_single_frame(
                         # NOTE: The inputs are in the form of [x, y, z, x', y', z', r', s]
                         track.batch.effective_data[:, [0, 1, 2, -2, -1]]
                     )

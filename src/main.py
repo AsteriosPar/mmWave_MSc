@@ -12,13 +12,13 @@ from Visualizer import Visualizer, ScreenAdapter
 from Utils import (
     preprocess_data,
     OfflineManager,
+    PostureEstimation,
 )
-from preprocess import preprocess_single_frame
+from preprocessing import format_single_frame
 from Tracking import (
     TrackBuffer,
     BatchedData,
 )
-from PostureEstimation import PostureEstimation
 
 OFFLINE = 0
 ONLINE = 1
@@ -83,11 +83,10 @@ def main():
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
 
-                        # frame_matrices = np.empty(0, dtype=object)
                         frame_matrices = np.array(
                             [
-                                preprocess_single_frame(
-                                    # NOTE: The inputs are in the form of [x, y, z, x', y', z', r', s]
+                                format_single_frame(
+                                    # The inputs are in the form of [x, y, z, x', y', z', r', s]
                                     track.batch.effective_data[:, [0, 1, 2, -2, -1]]
                                 )
                                 for track in trackbuffer.effective_tracks
