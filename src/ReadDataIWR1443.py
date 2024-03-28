@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import serial
+from datetime import datetime, timezone
 
 """ This module is taken from https://github.com/FmmW-Group/IWR1443-Python-API/blob/main/README.md"""
 
@@ -106,6 +107,10 @@ class ReadIWR14xx(object):
 
                 # Read the data depending on the TLV message
                 if tlv_type == self.MMWDEMO_UART_MSG_DETECTED_POINTS:
+
+                    ############ Capture NTP timestamp here ################
+                    ntp_stamp = round(datetime.now(timezone.utc).timestamp() * 1000)
+
                     # word array to convert 4 bytes to a 16 bit number
                     word = [1, 2**8]
                     tlv_numObj = np.matmul(self.byteBuffer[idX : idX + 2], word)
@@ -176,15 +181,16 @@ class ReadIWR14xx(object):
                         "x": x,
                         "y": y,
                         "z": z,
+                        "timestamp": ntp_stamp,
                     }
                     dataOK = 1
 
             # Remove already processed data
             if idX > 0 and self.byteBufferLength > idX:
                 # shiftSize = totalPacketLen
-                self.byteBuffer[
-                    : self.byteBufferLength - totalPacketLen
-                ] = self.byteBuffer[totalPacketLen : self.byteBufferLength]
+                self.byteBuffer[: self.byteBufferLength - totalPacketLen] = (
+                    self.byteBuffer[totalPacketLen : self.byteBufferLength]
+                )
                 # self.byteBuffer[self.byteBufferLength - shiftSize:] = np.zeros(len(self.byteBuffer[self.byteBufferLength - shiftSize:]),dtype = 'uint8')
                 self.byteBufferLength = self.byteBufferLength - totalPacketLen
 

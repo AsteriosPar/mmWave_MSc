@@ -64,6 +64,7 @@ def write_thread(queue: Queue, data_path, stop_event: Event):
                 "Z": detObj["z"],
                 "Doppler": detObj["doppler"],
                 "Intensity": detObj["peakVal"],
+                "Timestamp": detObj["timestamp"],
             }
 
             # # Store data in the data path
