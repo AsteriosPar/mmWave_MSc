@@ -202,26 +202,26 @@ class Visualizer:
         for track in trackbuffer.effective_tracks:
             # We want to visualize only new points.
             # if track.lifetime == 0:
-            # coords = track.batch.effective_data
-            # x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
+            coords = track.batch.effective_data
+            x, y, z = coords[:, 0], coords[:, 1], coords[:, 2]
 
-            # # Update pointclouds with different colors for different clusters
-            # x_all = np.concatenate([x_all, x])
-            # y_all = np.concatenate([y_all, y])
-            # z_all = np.concatenate([z_all, z])
-            # color_all = np.concatenate(
-            #     [color_all, np.repeat([track.color], len(x), axis=0)]
+            # Update pointclouds with different colors for different clusters
+            x_all = np.concatenate([x_all, x])
+            y_all = np.concatenate([y_all, y])
+            z_all = np.concatenate([z_all, z])
+            color_all = np.concatenate(
+                [color_all, np.repeat([track.color], len(x), axis=0)]
+            )
+
+            # self.dynamic_art.append(
+            #     self._draw_bounding_box(track.state.x, color=track.color, fill=0.5)
             # )
-
-            self.dynamic_art.append(
-                self._draw_bounding_box(track.state.x, color=track.color, fill=0.5)
-            )
-            self.dynamic_art.append(
-                self._draw_bounding_box(track.predict_x, color="red")
-            )
-            self.dynamic_art.append(
-                self._draw_bounding_box(track.cluster.centroid, color="green")
-            )
+            # self.dynamic_art.append(
+            #     self._draw_bounding_box(track.predict_x, color="red")
+            # )
+            # self.dynamic_art.append(
+            #     self._draw_bounding_box(track.cluster.centroid, color="green")
+            # )
             # self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot

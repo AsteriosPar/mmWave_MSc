@@ -102,7 +102,7 @@ def data_log_mode():
 
     # Create the logging file target
     data_path = os.path.join(
-        const.P_LOG_PATH,
+        f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}",
         experiment,
     )
     if os.path.exists(data_path):

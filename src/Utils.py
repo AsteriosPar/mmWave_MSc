@@ -373,8 +373,8 @@ def preprocess_data(detObj):
 
         # Perform scene constraints filtering
         if (
-            transformed_point[2] <= 2
-            and transformed_point[2] > -0.1
+            transformed_point[2] <= 2.5
+            and transformed_point[2] > -0.5
             and transformed_point[1] > 0
         ):
             ef_data = np.append(

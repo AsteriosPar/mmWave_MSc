@@ -7,7 +7,7 @@ ONLINE = 1
 PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
-P_CONFIG_PATH = "./config_cases/mars_config.cfg"
+P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
 P_MODEL_PATH = "./src/model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
@@ -38,13 +38,13 @@ SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
 SCREEN_HEIGHT = 0.8
 
 # Sensor Attributes
-S_HEIGHT = 0
-S_TILT = 0  # degrees (-180, 180)
+S_HEIGHT = 1.8
+S_TILT = -10  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
 
-V_3D_AXIS = [[-1.25, 1.25], [0, 4], [0, 3]]
+V_3D_AXIS = [[-2.5, 2.5], [0, 5], [0, 3]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
 V_SCREEN_FADE_SIZE_MIN: float = 0.14
 V_SCREEN_FADE_WEIGHT: float = (
@@ -69,10 +69,10 @@ FB_WIDTH_FRAME_PERIOD = 20
 
 ####### Clustering #######
 # DBScan
-DB_Z_WEIGHT = 0.3
+DB_Z_WEIGHT = 0.1
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
-DB_MIN_SAMPLES_MIN = 20
+DB_MIN_SAMPLES_MIN = 30
 
 # Inner DBScan
 DB_POINTS_THRES = 40
@@ -90,7 +90,7 @@ def db_min_sample(y):
 ###### Tracking and Kalman ######
 # Tracks
 TR_LIFETIME_DYNAMIC = 3  # sec
-TR_LIFETIME_STATIC = 8
+TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 5.2
 
@@ -189,7 +189,7 @@ class CONST_VEL_MODEL:
 ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
-SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
+SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
 SCREEN_CONNECTED = False
 
 
