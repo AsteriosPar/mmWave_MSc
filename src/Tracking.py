@@ -678,7 +678,8 @@ class TrackBuffer:
         # Clustering of the remainder points Step
         new_clusters = []
         batch.add_frame(unassigned)
-        if len(batch.effective_data) > 0:
+        # NOTE: SOS!!! remove the and len(self.effective_tracks == 0). This is only for training
+        if len(batch.effective_data) > 0 and len(self.effective_tracks) == 0:
             new_clusters = apply_DBscan(batch.effective_data)
 
             if len(new_clusters) > 0:

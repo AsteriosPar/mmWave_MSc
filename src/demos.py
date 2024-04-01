@@ -73,10 +73,9 @@ def combined_plot(mmWave_data: pd.DataFrame, pointcloud_index, kinect_data, ax):
     plt.pause(0.05)
 
 
-def pair_demo(
-    labels="./dataset/log/kinect/time2.csv",
-    pointclouds_path="./dataset/log/mmWave/time2",
-):
+def pair_demo(exp):
+    labels = f"./dataset/log/kinect/{exp}.csv"
+    pointclouds_path = f"./dataset/log/mmWave/{exp}"
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
@@ -156,3 +155,6 @@ def preprocessed_demo(experiment=const.P_EXPERIMENT_FILE_READ):
                 kinect_index += 1
 
     plt.show()
+
+
+preprocessed_demo("c4")
