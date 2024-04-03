@@ -38,8 +38,8 @@ SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
 SCREEN_HEIGHT = 0.8
 
 # Sensor Attributes
-S_HEIGHT = 0
-S_TILT = 0  # degrees (-180, 180)
+S_HEIGHT = 1.6
+S_TILT = -5  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
@@ -61,8 +61,8 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 2
-FB_FRAMES_BATCH_STATIC = 2
+FB_FRAMES_BATCH = 1
+FB_FRAMES_BATCH_STATIC = 1
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 

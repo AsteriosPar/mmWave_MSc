@@ -12,8 +12,10 @@ from Tracking import (
     TrackBuffer,
     BatchedData,
 )
-import re
 from wakepy import keep
+
+KINECT_Z = 0.8
+KINECT_X = -0.42
 
 
 def pair(experiment):
@@ -47,7 +49,7 @@ def filter_kinect_frames(pairs, invalid_frames, experiment):
         f"{const.P_LOG_PATH}{const.P_KINECT_DIR}", f"{experiment}.csv"
     )
     output_file = os.path.join(
-        f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}", f"A{experiment}.csv"
+        f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}", f"{experiment}.csv"
     )
 
     invalid_kinect_frames = []
@@ -66,18 +68,34 @@ def filter_kinect_frames(pairs, invalid_frames, experiment):
             if any(int(row[1]) == f_pair[1] for f_pair in pairs) and not any(
                 int(row[1]) == inv_frame1 for inv_frame1 in invalid_kinect_frames
             ):
-                writer.writerow(row)
+
+                translated_row = translate_kinect(row)
+                writer.writerow(translated_row)
 
 
-def preprocess_dataset():
+def translate_kinect(row):
+    for i in range(2, len(row) - 1):
+        # For all x coords
+        if i % 3 == 2:
+            row[i] = str(float(row[i]) + KINECT_X)
+
+        # For all z coords:
+        elif i % 3 == 1:
+            row[i] = str(float(row[i]) + KINECT_Z)
+
+    return row
+
+
+def preprocess_dataset(relative_enabled=False):
 
     experiments_directory = f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}"
     for experiment in os.listdir(experiments_directory):
+        print("new exp")
 
         frame_pairs = pair(experiment)
 
         input_dir = os.path.join(f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}", experiment)
-        output_dir = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/A{experiment}"
+        output_dir = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/{experiment}"
         os.makedirs(output_dir)
         data_buffer = pd.DataFrame()
         frames_in_cur_file = 0
@@ -110,21 +128,29 @@ def preprocess_dataset():
                         trackbuffer.track(effective_data, batch)
 
                         if len(trackbuffer.effective_tracks) > 0:
-                            single_target_points = trackbuffer.effective_tracks[
+                            track_points = trackbuffer.effective_tracks[
                                 0
                             ].batch.effective_data
-                            if single_target_points.shape[0] > 0:
+                            if track_points.shape[0] > 0:
 
                                 valid_frame = True
+
+                                if relative_enabled:
+                                    track_points = relative_coordinates(
+                                        track_points,
+                                        trackbuffer.effective_tracks[
+                                            0
+                                        ].cluster.centroid,
+                                    )
 
                                 # Save effective data in a .csv
                                 data = {
                                     "Frame": framenum,
-                                    "X": single_target_points[:, 0],
-                                    "Y": single_target_points[:, 1],
-                                    "Z": single_target_points[:, 2],
-                                    "Doppler": single_target_points[:, 6],
-                                    "Intensity": single_target_points[:, 7],
+                                    "X": track_points[:, 0],
+                                    "Y": track_points[:, 1],
+                                    "Z": track_points[:, 2],
+                                    "Doppler": track_points[:, 6],
+                                    "Intensity": track_points[:, 7],
                                 }
 
                                 # Store data in the data path
@@ -224,19 +250,6 @@ def format_mmwave_to_npy(mean, std_dev, mode):
             print(f"doing {experiment}, {filename}...")
             with open(os.path.join(experiment_path, filename), "r") as file:
                 df = pd.read_csv(file, header=None)
-                # unique_frames = df.drop_duplicates(subset=0)
-
-                # for _, row_unique in unique_frames.iterrows():
-                #     frame_array = []
-                #     frame_found = False
-                #     for _, row in df.iterrows():
-                #         if row_unique[0] == row[0]:
-                #             frame_found = True
-                #             frame_array.append(row[1:6])
-
-                #         elif frame_found:
-                #             break
-
                 current_frame = None
                 frame_array = []
                 for _, row in df.iterrows():
@@ -259,17 +272,6 @@ def format_mmwave_to_npy(mean, std_dev, mode):
                 main_list.append(
                     format_single_frame(np.array(frame_array), mean, std_dev)
                 )
-
-                # # main_array = np.concatenate(
-                # #     (
-                # #         main_array,
-                # #         [format_single_frame(np.array(frame_array), mean, std_dev)],
-                # #     ),
-                # #     axis=0,
-                # # )
-                # main_list.append(
-                #     format_single_frame(np.array(frame_array), mean, std_dev)
-                # )
     print(np.array(main_list).shape)
     # Save to output .npy file
     np.save(
@@ -319,5 +321,15 @@ def extract_parts(filename):
     return int(numeric_part), alpha_part, ext
 
 
-# preprocess_dataset()
-format_dataset()
+def relative_coordinates(absolute_coords: np.array, reference: np.array):
+    # NOTE: Keep the z-axis intact to not add noise
+    return np.array(
+        [
+            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+            for point in absolute_coords
+        ]
+    )
+
+
+preprocess_dataset(False)
+# format_dataset()
