@@ -157,10 +157,10 @@ class Visualizer:
                 [0.3, -0.3, 0],
                 [0.3, 0.3, 0],
                 [-0.3, 0.3, 0],
-                [-0.3, -0.3, 1.8],
-                [0.3, -0.3, 1.8],
-                [0.3, 0.3, 1.8],
-                [-0.3, 0.3, 1.8],
+                [-0.3, -0.3, 2.5],
+                [0.3, -0.3, 2.5],
+                [0.3, 0.3, 2.5],
+                [-0.3, 0.3, 2.5],
             ]
         )
         vertices = vertices + c
@@ -213,9 +213,9 @@ class Visualizer:
                 [color_all, np.repeat([track.color], len(x), axis=0)]
             )
 
-            # self.dynamic_art.append(
-            #     self._draw_bounding_box(track.state.x, color=track.color, fill=0.5)
-            # )
+            self.dynamic_art.append(
+                self._draw_bounding_box(track.state.x, color=track.color, fill=0.2)
+            )
             # self.dynamic_art.append(
             #     self._draw_bounding_box(track.predict_x, color="red")
             # )

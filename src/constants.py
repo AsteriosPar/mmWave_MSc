@@ -29,13 +29,13 @@ P_EXPERIMENT_FILE_READ = "test1"
 ###### Scene Setup ######
 # Sensitive Coordinates
 M_X = 0.28
-M_Y = -0.36
+M_Y = -0.5
 M_Z = 1.55
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
 SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
-SCREEN_HEIGHT = 0.8
+SCREEN_HEIGHT = 2
 
 # Sensor Attributes
 S_HEIGHT = 1.6
@@ -61,15 +61,15 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 1
-FB_FRAMES_BATCH_STATIC = 1
+FB_FRAMES_BATCH = 2
+FB_FRAMES_BATCH_STATIC = 2
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
 
 ####### Clustering #######
 # DBScan
-DB_Z_WEIGHT = 0.1
+DB_Z_WEIGHT = 0.4
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
 DB_MIN_SAMPLES_MIN = 40
@@ -92,7 +92,7 @@ def db_min_sample(y):
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
-TR_GATE = 5.2
+TR_GATE = 4
 
 # Kalman
 KF_R_STD = 0.1
@@ -190,7 +190,7 @@ ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
 SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = False
+SCREEN_CONNECTED = True
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

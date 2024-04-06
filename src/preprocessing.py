@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import math
 import os
 import os
 import csv
@@ -15,7 +16,7 @@ from Tracking import (
 from wakepy import keep
 
 KINECT_Z = 0.8
-KINECT_X = -0.42
+KINECT_X = 0.22
 
 
 def pair(experiment):
@@ -40,7 +41,7 @@ def pair(experiment):
 
                 if abs(timestamp1 - timestamp2) < 20:
                     pairs.append((int(row1[0]), closest_row.iloc[0, 1]))
-    # print(pairs)
+    # print(len(pairs))
     return pairs
 
 
@@ -74,14 +75,25 @@ def filter_kinect_frames(pairs, invalid_frames, experiment):
 
 
 def translate_kinect(row):
+    ang_rad = np.radians(6.5)
     for i in range(2, len(row) - 1):
         # For all x coords
         if i % 3 == 2:
             row[i] = str(float(row[i]) + KINECT_X)
 
         # For all z coords:
-        elif i % 3 == 1:
-            row[i] = str(float(row[i]) + KINECT_Z)
+        elif i % 3 == 0:
+            row[i] = str(
+                float(row[i + 1]) * np.sin(ang_rad)
+                + float(row[i]) * np.cos(ang_rad)
+                + KINECT_Z
+            )
+
+        # For all y coords:
+        else:
+            row[i] = str(
+                float(row[i]) * np.cos(ang_rad) - float(row[i - 1]) * np.sin(ang_rad)
+            )
 
     return row
 
@@ -331,5 +343,5 @@ def relative_coordinates(absolute_coords: np.array, reference: np.array):
     )
 
 
-preprocess_dataset(False)
-# format_dataset()
+# preprocess_dataset(False)
+format_dataset()

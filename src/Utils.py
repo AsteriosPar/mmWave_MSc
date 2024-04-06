@@ -133,7 +133,7 @@ class OfflineManager:
         if self.frame_count in self.pointclouds:
             return True, self.frame_count, self.pointclouds[self.frame_count]
         else:
-            return False, None, None
+            return False, self.frame_count, None
 
     def is_finished(self):
         # If last_frame is None the offline experiment has reached its end or the experiment file was not found
@@ -349,9 +349,22 @@ def preprocess_data(detObj):
             + input_data[index, 1] ** 2
             + input_data[index, 2] ** 2
         )
-        vx = input_data[index, 3] * input_data[index, 0] / r
-        vy = input_data[index, 3] * input_data[index, 1] / r
-        vz = input_data[index, 3] * input_data[index, 2] / r
+        if r == 0:
+            vx = 0
+            vy = input_data[index, 3]
+            vz = 0
+        else:
+            if (
+                input_data[index, 0] is None
+                or input_data[index, 1] is None
+                or input_data[index, 2] is None
+                or input_data[index, 3] is None
+            ):
+                print(f"Error: {input_data[index, :]}")
+
+            vx = input_data[index, 3] * input_data[index, 0] / r
+            vy = input_data[index, 3] * input_data[index, 1] / r
+            vz = input_data[index, 3] * input_data[index, 2] / r
 
         # Translate points to new coordinate system
         transformed_point = point_transform_to_standard_axis(
@@ -373,10 +386,9 @@ def preprocess_data(detObj):
 
         # Perform scene constraints filtering
         if (
-            # transformed_point[2] <= 2.5
-            # and transformed_point[2] > -0.5 and
-            transformed_point[1]
-            > 0
+            transformed_point[2] <= 2.5
+            and transformed_point[2] > -0.5
+            and transformed_point[1] > 0
         ):
             ef_data = np.append(
                 ef_data,
