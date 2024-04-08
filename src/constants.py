@@ -92,7 +92,7 @@ def db_min_sample(y):
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
-TR_GATE = 4
+TR_GATE = 5
 
 # Kalman
 KF_R_STD = 0.1

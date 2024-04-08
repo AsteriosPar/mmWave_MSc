@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import math
+import shutil
 import os
 import os
 import csv
@@ -17,6 +17,7 @@ from wakepy import keep
 
 KINECT_Z = 0.8
 KINECT_X = 0.22
+RELATIVE_ENABLED = True
 
 
 def pair(experiment):
@@ -45,7 +46,17 @@ def pair(experiment):
     return pairs
 
 
-def filter_kinect_frames(pairs, invalid_frames, experiment):
+def relative_coordinates(absolute_coords: np.array, reference: np.array):
+    # NOTE: Keep the z-axis intact to not add noise
+    return np.array(
+        [
+            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+            for point in absolute_coords
+        ]
+    )
+
+
+def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
     input_file = os.path.join(
         f"{const.P_LOG_PATH}{const.P_KINECT_DIR}", f"{experiment}.csv"
     )
@@ -65,13 +76,20 @@ def filter_kinect_frames(pairs, invalid_frames, experiment):
         reader = csv.reader(infile)
         writer = csv.writer(outfile)
 
+        valid_counter = 0
         for row in reader:
             if any(int(row[1]) == f_pair[1] for f_pair in pairs) and not any(
                 int(row[1]) == inv_frame1 for inv_frame1 in invalid_kinect_frames
             ):
 
                 translated_row = translate_kinect(row)
+
+                if RELATIVE_ENABLED:
+                    current_centroid = centroids[valid_counter]
+                    translated_row = relative_kinect(translated_row, current_centroid)
+
                 writer.writerow(translated_row)
+                valid_counter += 1
 
 
 def translate_kinect(row):
@@ -98,7 +116,20 @@ def translate_kinect(row):
     return row
 
 
-def preprocess_dataset(relative_enabled=False):
+def relative_kinect(row, centroid):
+    for i in range(2, len(row) - 1):
+        # For all x coords
+        if i % 3 == 2:
+            row[i] = str(float(row[i]) - centroid[0])
+
+        # For all y coords:
+        elif i % 3 == 1:
+            row[i] = str(float(row[i]) - centroid[1])
+
+    return row
+
+
+def preprocess_dataset():
 
     experiments_directory = f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}"
     for experiment in os.listdir(experiments_directory):
@@ -108,6 +139,8 @@ def preprocess_dataset(relative_enabled=False):
 
         input_dir = os.path.join(f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}", experiment)
         output_dir = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/{experiment}"
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
         os.makedirs(output_dir)
         data_buffer = pd.DataFrame()
         frames_in_cur_file = 0
@@ -120,6 +153,7 @@ def preprocess_dataset(relative_enabled=False):
 
         first_iter = True
         invalid_frames = []
+        centroids = []
         while not sensor_data.is_finished():
 
             valid_frame = False
@@ -143,16 +177,21 @@ def preprocess_dataset(relative_enabled=False):
                             track_points = trackbuffer.effective_tracks[
                                 0
                             ].batch.effective_data
-                            if track_points.shape[0] > 0:
+                            if len(track_points) > 0:
 
                                 valid_frame = True
 
-                                if relative_enabled:
+                                if RELATIVE_ENABLED:
                                     track_points = relative_coordinates(
                                         track_points,
                                         trackbuffer.effective_tracks[
                                             0
                                         ].cluster.centroid,
+                                    )
+                                    centroids.append(
+                                        trackbuffer.effective_tracks[
+                                            0
+                                        ].cluster.centroid[:2],
                                     )
 
                                 # Save effective data in a .csv
@@ -199,7 +238,11 @@ def preprocess_dataset(relative_enabled=False):
             if not valid_frame:
                 invalid_frames.append(framenum)
 
-        filter_kinect_frames(frame_pairs, invalid_frames, experiment)
+        # Write remaining data to CSV
+        df = pd.DataFrame(data_buffer)
+        df.to_csv(cur_file, mode="a", index=False, header=False)
+
+        filter_kinect_frames(frame_pairs, invalid_frames, experiment, centroids)
 
 
 def find_intensity_normalizers(sets):
@@ -248,7 +291,6 @@ def format_single_frame(
 def format_mmwave_to_npy(mean, std_dev, mode):
     experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
     output_path = f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}"
-    # main_array = np.empty((0, 8, 8, 5))
     main_list = []
 
     experiments = os.listdir(experiments_directory)
@@ -273,13 +315,13 @@ def format_mmwave_to_npy(mean, std_dev, mode):
                         frame_array.append(row[1:6])
 
                     else:
-
                         main_list.append(
                             format_single_frame(np.array(frame_array), mean, std_dev)
                         )
 
                         frame_array = []
                         current_frame = row[0]
+                        frame_array.append(row[1:6])
 
                 main_list.append(
                     format_single_frame(np.array(frame_array), mean, std_dev)
@@ -333,15 +375,49 @@ def extract_parts(filename):
     return int(numeric_part), alpha_part, ext
 
 
-def relative_coordinates(absolute_coords: np.array, reference: np.array):
-    # NOTE: Keep the z-axis intact to not add noise
-    return np.array(
-        [
-            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
-            for point in absolute_coords
-        ]
-    )
+def split_sets():
+    validate_prefix = ["A5"]
+    testing_prefix = ["A4"]
+
+    kinect_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}/"
+    mmwave_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/"
+
+    directories = [kinect_directory, mmwave_directory]
+
+    for directory in directories:
+        experiments = os.listdir(directory)
+
+        shutil.rmtree(f"{directory}/training")
+        shutil.rmtree(f"{directory}/validate")
+        shutil.rmtree(f"{directory}/testing")
+        os.makedirs(f"{directory}/training")
+        os.makedirs(f"{directory}/validate")
+        os.makedirs(f"{directory}/testing")
+
+        for experiment in experiments:
+            if (
+                experiment.find("training") == -1
+                and experiment.find("validate") == -1
+                and experiment.find("testing") == -1
+            ):
+                if any(experiment.find(prefix) != -1 for prefix in validate_prefix):
+                    shutil.move(
+                        f"{directory}/{experiment}",
+                        f"{directory}/validate/{experiment}",
+                    )
+
+                elif any(experiment.find(prefix) != -1 for prefix in testing_prefix):
+                    shutil.move(
+                        f"{directory}/{experiment}",
+                        f"{directory}/testing/{experiment}",
+                    )
+                else:
+                    shutil.move(
+                        f"{directory}/{experiment}",
+                        f"{directory}/training/{experiment}",
+                    )
 
 
-# preprocess_dataset(False)
+preprocess_dataset()
+split_sets()
 format_dataset()

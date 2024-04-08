@@ -115,7 +115,7 @@ def combined_plot(
 
     # Set fixed axis scales
     ax.set_xlim(-2, 2)
-    ax.set_ylim(0, 3)
+    ax.set_ylim(0, 4.5)
     ax.set_zlim(0, 3)
 
     if save:
@@ -247,6 +247,7 @@ def model_demo(save=False):
     predictions = model.predict(featuremap_test)
 
     for predict_num, prediction in enumerate(predictions):
+
         ax.clear()  # Clear the plot before each iteration
 
         # NOTE: MARS outputs the keypoint coords as [x1, x2, ..., xN, y1, y2, ..., yN, z1, z2, ..., zN]
@@ -259,8 +260,8 @@ def model_demo(save=False):
 
         # Set fixed axis scales
         ax.set_xlim(-2, 2)
-        ax.set_ylim(0, 4)
-        ax.set_zlim(0, 3)
+        ax.set_ylim(-1, 4)
+        ax.set_zlim(-1, 3)
 
         if save:
             plt.savefig(f"./gif/{predict_num}.png")
@@ -279,5 +280,6 @@ def create_animation():
 
 
 # create_animation()
-# preprocessed_demo("A43")
-# model_demo()
+# pair_demo("A41")
+# preprocessed_demo("testing/A41")
+model_demo()
