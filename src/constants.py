@@ -8,7 +8,7 @@ PIXEL_TO_METERS = 0.000265
 
 # Paths and Ports
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
-P_MODEL_PATH = "./src/model/MARS.h5"
+P_MODEL_PATH = "./model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
 P_LOG_PATH = f"{P_DATA_PATH}/log"
@@ -24,7 +24,7 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Experiment specifications
-P_EXPERIMENT_FILE_READ = "test1"
+P_EXPERIMENT_FILE_READ = "A41"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
@@ -61,8 +61,8 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 2
-FB_FRAMES_BATCH_STATIC = 2
+FB_FRAMES_BATCH = 1
+FB_FRAMES_BATCH_STATIC = 1
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -92,7 +92,7 @@ def db_min_sample(y):
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
-TR_GATE = 5
+TR_GATE = 4.5
 
 # Kalman
 KF_R_STD = 0.1
@@ -113,6 +113,69 @@ KF_A_SPR = 0.9  # Revise
 # Intensity Normalization
 INTENSITY_MU = 193
 INTENSITY_STD = 252
+
+MODEL_MIN_INPUT = 0
+MODEL_DEFAULT_POSTURE = np.array(
+    [
+        0.00000000,
+        -0.00079287,
+        -0.00069028,
+        -0.00386972,
+        -0.18202336,
+        -0.25408896,
+        -0.25791826,
+        0.18307304,
+        0.29578214,
+        0.29407474,
+        -0.08050454,
+        -0.11416449,
+        -0.12328033,
+        -0.13587935,
+        0.07962164,
+        0.14361644,
+        0.15583284,
+        0.17200874,
+        -0.00076715,
+        0.76999552,
+        1.09064452,
+        1.40205857,
+        1.55136266,
+        1.28932279,
+        1.03600181,
+        0.79945567,
+        1.28655952,
+        1.04830291,
+        0.81176811,
+        0.76708653,
+        0.34282525,
+        0.00000000,
+        -0.07469891,
+        0.77131499,
+        0.37066848,
+        -0.01288807,
+        -0.07960824,
+        1.32559470,
+        0.07527616,
+        0.05331851,
+        0.02032234,
+        0.00000000,
+        0.04961569,
+        0.13505063,
+        0.13039448,
+        0.03457985,
+        0.12770589,
+        0.10500648,
+        0.03924988,
+        0.05333718,
+        0.07861458,
+        -0.00562979,
+        0.03460233,
+        -0.00071120,
+        0.06832139,
+        -0.00826901,
+        0.03123243,
+    ]
+)
 
 
 # Motion Models
@@ -189,8 +252,8 @@ class CONST_VEL_MODEL:
 ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
 PROFILING = False
-SYSTEM_MODE = ONLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = True
+SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
+SCREEN_CONNECTED = False
 
 
 # q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)

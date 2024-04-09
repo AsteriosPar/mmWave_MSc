@@ -206,6 +206,7 @@ class ClusterTrack:
         self.width_buffer = RingBuffer(const.FB_WIDTH_FRAME_PERIOD)
         # NOTE: For visualizing purposes only
         self.predict_x = self.state.x
+        self.keypoints = const.MODEL_DEFAULT_POSTURE
 
     def predict_state(self, dt: float):
         """

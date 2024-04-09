@@ -397,3 +397,9 @@ def preprocess_data(detObj):
             )
 
     return ef_data
+
+
+def revert_static_skeleton(reshaped_keypoints: np.array, centroid):
+    reshaped_keypoints[0] += centroid[0]
+    reshaped_keypoints[2] += centroid[1]
+    return reshaped_keypoints

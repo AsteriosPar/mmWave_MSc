@@ -94,7 +94,7 @@ def combined_plot(
 
     # Set up joint keypoints
     # NOTE: the mmWave microcontroller is placed 0.2m to the right of the Kinect sensor.
-    x = [kinect_data.iloc[j] - 0.2 for j in range(2, 57, 3)]
+    x = [kinect_data.iloc[j] for j in range(2, 57, 3)]
     y = [kinect_data.iloc[j] for j in range(3, 58, 3)]
     z = [kinect_data.iloc[j] for j in range(4, 59, 3)]
 
@@ -246,22 +246,23 @@ def model_demo(save=False):
 
     predictions = model.predict(featuremap_test)
 
-    for predict_num, prediction in enumerate(predictions):
+    for predict_num in range(0, len(predictions)):
 
         ax.clear()  # Clear the plot before each iteration
 
         # NOTE: MARS outputs the keypoint coords as [x1, x2, ..., xN, y1, y2, ..., yN, z1, z2, ..., zN]
-        reshaped_data = prediction.reshape(3, -1)
+        reshaped_data = predictions[predict_num].reshape(3, -1)
         generate_skeleton(reshaped_data, ax)
 
         # GROUND TRUTH
+        print("%.10f" % ground_truth[predict_num])
         reshaped_ground_truth = ground_truth[predict_num].reshape(3, -1)
         generate_skeleton(reshaped_ground_truth, ax, True)
 
         # Set fixed axis scales
-        ax.set_xlim(-2, 2)
-        ax.set_ylim(-1, 4)
-        ax.set_zlim(-1, 3)
+        ax.set_xlim(-1.5, 1.5)
+        ax.set_ylim(-1.5, 1.5)
+        ax.set_zlim(0, 3)
 
         if save:
             plt.savefig(f"./gif/{predict_num}.png")
@@ -280,6 +281,6 @@ def create_animation():
 
 
 # create_animation()
-# pair_demo("A41")
-# preprocessed_demo("testing/A41")
+# pair_demo("A43")
+# preprocessed_demo("A43")
 model_demo()

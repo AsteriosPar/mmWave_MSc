@@ -8,7 +8,7 @@ from matplotlib.patches import Patch
 
 import constants as const
 from Tracking import TrackBuffer, ClusterTrack
-from Utils import calc_projection_points
+from Utils import calc_projection_points, revert_static_skeleton
 
 
 def calc_fade_square(track: ClusterTrack):
@@ -232,20 +232,20 @@ class Visualizer:
             f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
         )
 
-    def update_posture(self, keypoints: np.array):
+    def update_posture(self, tracks):
         # NOTE: the keypoints have a shape (num_of_tracks, 19)
         self.ax_post.clear()
         self.setup_subplot(self.ax_post)
-        for track_id in range(len(keypoints)):
-            reshaped_data = keypoints[track_id][:].reshape(3, -1)
-
+        for track in tracks:
+            reshaped_data = track.keypoints.reshape(3, -1)
+            revert_static_skeleton(reshaped_data, track.cluster.centroid)
             for connection in self.connections:
                 keypoint_1 = connection[0]
                 keypoint_2 = connection[1]
 
                 x_values = [reshaped_data[0][keypoint_1], reshaped_data[0][keypoint_2]]
-                y_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
-                z_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
+                z_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
+                y_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
 
                 self.ax_post.plot(x_values, y_values, z_values, color="black")
 
@@ -256,8 +256,8 @@ class Visualizer:
                 )  # Use square marker for the head
                 self.post_scatter = self.ax_post.scatter(
                     reshaped_data[0][keypoint_index],
-                    reshaped_data[1][keypoint_index],
                     reshaped_data[2][keypoint_index],
+                    reshaped_data[1][keypoint_index],
                     c=color,
                     marker=marker,
                     s=100 if keypoint_index == 3 else 50,  # Larger size for the head

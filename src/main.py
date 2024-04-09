@@ -14,7 +14,7 @@ from Utils import (
     OfflineManager,
     PostureEstimation,
 )
-from preprocessing import format_single_frame
+from preprocessing import format_single_frame, relative_coordinates
 from Tracking import (
     TrackBuffer,
     BatchedData,
@@ -47,10 +47,10 @@ def main():
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
-        visual = Visualizer(False, True, False)
+        visual = Visualizer(False, True, True)
 
     trackbuffer = TrackBuffer()
-    # model = PostureEstimation(const.P_MODEL_PATH)
+    model = PostureEstimation(const.P_MODEL_PATH)
     batch = BatchedData()
 
     # Disable screen sleep/screensaver
@@ -83,18 +83,33 @@ def main():
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
 
-                        # frame_matrices = np.array(
-                        #     [
-                        #         format_single_frame(
-                        #             # The inputs are in the form of [x, y, z, x', y', z', r', s]
-                        #             track.batch.effective_data[:, [0, 1, 2, -2, -1]]
-                        #         )
-                        #         for track in trackbuffer.effective_tracks
-                        #     ]
-                        # )
-                        # frame_keypoints = model.estimate_posture(frame_matrices)
+                        frame_matrices = []
+                        indexes = []
+                        for index, track in enumerate(trackbuffer.effective_tracks):
+                            if len(track.batch.effective_data) > const.MODEL_MIN_INPUT:
+                                rel_track_points = relative_coordinates(
+                                    track.batch.effective_data,
+                                    track.cluster.centroid[:2],
+                                )
+                                # The inputs are in the form of [x, y, z, x', y', z', r', s]
+                                frame_matrices.append(
+                                    format_single_frame(
+                                        rel_track_points[:, [0, 1, 2, -2, -1]]
+                                    )
+                                )
+                                indexes.append(index)
 
-                        # visual.update_posture(frame_keypoints)
+                        frame_matrices_array = np.array(frame_matrices)
+                        if len(frame_matrices_array) > 0:
+                            frame_keypoints = model.estimate_posture(
+                                frame_matrices_array
+                            )
+                            for i, index in enumerate(indexes):
+                                trackbuffer.effective_tracks[index].keypoints = (
+                                    frame_keypoints[i]
+                                )
+
+                        visual.update_posture(trackbuffer.effective_tracks)
 
                     if const.SCREEN_CONNECTED:
                         visual.update(trackbuffer)

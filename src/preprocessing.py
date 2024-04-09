@@ -85,8 +85,9 @@ def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
                 translated_row = translate_kinect(row)
 
                 if RELATIVE_ENABLED:
-                    current_centroid = centroids[valid_counter]
-                    translated_row = relative_kinect(translated_row, current_centroid)
+                    # current_centroid = centroids[valid_counter]
+                    # translated_row = relative_kinect(translated_row, current_centroid)
+                    translated_row = static_kinect(translated_row)
 
                 writer.writerow(translated_row)
                 valid_counter += 1
@@ -94,24 +95,23 @@ def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
 
 def translate_kinect(row):
     ang_rad = np.radians(6.5)
+    z, y = 0, 0
     for i in range(2, len(row) - 1):
         # For all x coords
         if i % 3 == 2:
             row[i] = str(float(row[i]) + KINECT_X)
+            z = float(row[i + 1])
+            y = float(row[i + 2])
 
         # For all z coords:
         elif i % 3 == 0:
             row[i] = str(
-                float(row[i + 1]) * np.sin(ang_rad)
-                + float(row[i]) * np.cos(ang_rad)
-                + KINECT_Z
+                y * np.sin(ang_rad) + float(row[i]) * np.cos(ang_rad) + KINECT_Z
             )
 
         # For all y coords:
         else:
-            row[i] = str(
-                float(row[i]) * np.cos(ang_rad) - float(row[i - 1]) * np.sin(ang_rad)
-            )
+            row[i] = str(float(row[i]) * np.cos(ang_rad) - z * np.sin(ang_rad))
 
     return row
 
@@ -125,6 +125,28 @@ def relative_kinect(row, centroid):
         # For all y coords:
         elif i % 3 == 1:
             row[i] = str(float(row[i]) - centroid[1])
+
+    return row
+
+
+def static_kinect(row):
+    # NOTE: the static skeleton has its lower back on the x=0 plane and its left foot on the z=0 plane
+    # Lower back x: row[2], Left foot z: row[39]
+    x_abs = float(row[2])
+    y_abs = float(row[13])
+    z_abs = float(row[39])
+    for i in range(2, len(row) - 1):
+        # For all x coords
+        if i % 3 == 2:
+            row[i] = str(float(row[i]) - x_abs)
+
+        # For all y coords
+        elif i % 3 == 1:
+            row[i] = str(float(row[i]) - y_abs)
+
+        # For all z coords:
+        else:
+            row[i] = str(float(row[i]) - z_abs)
 
     return row
 
@@ -284,6 +306,10 @@ def format_single_frame(
     sorted_indices = np.argsort(padded_data[:, 0])
     sorted_data = padded_data[sorted_indices]
 
+    ##################
+
+    ##################
+
     # Resize to matrix
     return sorted_data.reshape((8, 8, 5))
 
@@ -418,6 +444,6 @@ def split_sets():
                     )
 
 
-preprocess_dataset()
-split_sets()
-format_dataset()
+# preprocess_dataset()
+# split_sets()
+# format_dataset()
