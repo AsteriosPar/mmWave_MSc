@@ -24,7 +24,7 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 # Experiment specifications
-P_EXPERIMENT_FILE_READ = "A41"
+P_EXPERIMENT_FILE_READ = "B105"
 
 ###### Scene Setup ######
 # Sensitive Coordinates

@@ -38,7 +38,8 @@ class BatchedData(RingBuffer):
         Add a new frame of data to the buffer.
         """
         while len(self.buffer) >= self.size:
-            self.buffer.popleft()
+            self.pop_frame()
+
         super().append(new_data)
         self.effective_data = np.concatenate(list(self.buffer), axis=0)
 
@@ -54,6 +55,10 @@ class BatchedData(RingBuffer):
         Change the size of the buffer.
         """
         self.size = new_size
+
+    def pop_frame(self):
+        if len(self.buffer) > 0:
+            self.buffer.popleft()
 
 
 class KalmanState(KalmanFilter):

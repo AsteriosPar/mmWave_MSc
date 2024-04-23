@@ -47,7 +47,7 @@ def main():
     if const.SCREEN_CONNECTED:
         visual = ScreenAdapter()
     else:
-        visual = Visualizer(False, True, True)
+        visual = Visualizer(False, False, True)
 
     trackbuffer = TrackBuffer()
     model = PostureEstimation(const.P_MODEL_PATH)

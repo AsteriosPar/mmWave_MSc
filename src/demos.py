@@ -4,6 +4,7 @@ import numpy as np
 import os
 import constants as const
 from PIL import Image
+from matplotlib.patches import Patch
 from keras.models import load_model
 
 
@@ -80,29 +81,25 @@ def combined_plot(
     Xp = []
     Yp = []
     Zp = []
-    frame_found = False
-    for _, row in mmWave_data.iterrows():
-        if row[0] == pointcloud_index:
-            Xp.append(row[1])
-            Yp.append(row[2])
-            Zp.append(row[3])
-            frame_found = True
-        elif frame_found:
-            break
+
+    filtered_data = mmWave_data[mmWave_data[0] == pointcloud_index]
+    if not filtered_data.empty:
+        Xp.append(filtered_data[1])
+        Yp.append(filtered_data[2])
+        Zp.append(filtered_data[3])
 
     Xp = [-x for x in Xp]
 
     # Set up joint keypoints
-    # NOTE: the mmWave microcontroller is placed 0.2m to the right of the Kinect sensor.
     x = [kinect_data.iloc[j] for j in range(2, 57, 3)]
     y = [kinect_data.iloc[j] for j in range(3, 58, 3)]
     z = [kinect_data.iloc[j] for j in range(4, 59, 3)]
 
-    print(z[3], y[3])
+    # print(z[3], y[3])
 
     ax.clear()  # Clear the plot before each iteration
     ax.scatter(x, z, y)
-    ax.scatter(Xp, Yp, Zp, s=10)
+    # ax.scatter(Xp, Yp, Zp, s=10)
     for connection in CONNECTIONS:
         start_x, start_y, start_z = (
             x[connection[0]],
@@ -117,12 +114,14 @@ def combined_plot(
     ax.set_xlim(-2, 2)
     ax.set_ylim(0, 4.5)
     ax.set_zlim(0, 3)
+    legend_handles = [Patch(label=f"frame: {pointcloud_index}")]
+    ax.legend(handles=legend_handles)
 
     if save:
         plt.savefig(f"./gif/{int(pointcloud_index)}.png")
     else:
         plt.draw()
-        plt.pause(0.05)
+        plt.pause(0.001)
 
 
 def pair_demo(exp):
@@ -145,7 +144,7 @@ def pair_demo(exp):
                 closest_row = df2.iloc[(df2[0] - timestamp1).abs().argsort()[:1]]
                 timestamp2 = closest_row.iloc[0, 0]
 
-                if abs(timestamp1 - timestamp2) < 50:
+                if abs(timestamp1 - timestamp2) < 20:
                     combined_plot(df1, row1[0], closest_row.iloc[0, :], ax)
     plt.show()
 
@@ -255,7 +254,7 @@ def model_demo(save=False):
         generate_skeleton(reshaped_data, ax)
 
         # GROUND TRUTH
-        print("%.10f" % ground_truth[predict_num])
+        # print("%.10f" % ground_truth[predict_num])
         reshaped_ground_truth = ground_truth[predict_num].reshape(3, -1)
         generate_skeleton(reshaped_ground_truth, ax, True)
 
@@ -281,6 +280,6 @@ def create_animation():
 
 
 # create_animation()
-# pair_demo("A43")
-# preprocessed_demo("A43")
+# pair_demo("B85")
+# preprocessed_demo("B43")
 model_demo()

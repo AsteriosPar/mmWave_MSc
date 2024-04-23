@@ -199,8 +199,11 @@ def preprocess_dataset():
                             track_points = trackbuffer.effective_tracks[
                                 0
                             ].batch.effective_data
-                            if len(track_points) > 0:
 
+                            if (
+                                trackbuffer.effective_tracks[0].lifetime == 0
+                                and len(track_points) > 0
+                            ):
                                 valid_frame = True
 
                                 if RELATIVE_ENABLED:
@@ -256,6 +259,9 @@ def preprocess_dataset():
                                         cur_file = os.path.join(
                                             output_dir, f"{cur_file_index}.csv"
                                         )
+
+                else:
+                    batch.pop_frame()
 
             if not valid_frame:
                 invalid_frames.append(framenum)
