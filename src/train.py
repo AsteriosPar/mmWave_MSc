@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Taken from MARS repository https://github.com/SizheAn/MARS
-"""
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import os
 from sklearn import metrics
-
 from keras.optimizers import Adam
 from keras.models import Model
 from keras.layers import Dense
@@ -17,8 +12,11 @@ from keras.layers import Conv2D
 from keras.layers import BatchNormalization
 from keras.layers import Dropout
 
-# set the directory
-import os
+"""
+Taken from MARS repository https://github.com/SizheAn/MARS. It includes the training loop and 
+the model architecture of MARS.
+"""
+
 
 path = os.getcwd()
 os.chdir(path)

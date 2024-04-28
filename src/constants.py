@@ -1,12 +1,15 @@
 import numpy as np
-from filterpy.common import Q_discrete_white_noise, Q_continuous_white_noise
+from filterpy.common import Q_discrete_white_noise
 from scipy.linalg import block_diag
 
-OFFLINE = 0
-ONLINE = 1
 PIXEL_TO_METERS = 0.000265
 
-# Paths and Ports
+
+##### General Flags #####
+PROFILING = False
+SCREEN_CONNECTED = False
+
+##### Paths and Ports #####
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
 P_MODEL_PATH = "./model/MARS.h5"
 P_DATA_PATH = "./dataset"
@@ -23,9 +26,6 @@ P_PROFILING_PATH = "./profiling/"
 P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
-# Experiment specifications
-P_EXPERIMENT_FILE_READ = "B105"
-
 ###### Scene Setup ######
 # Sensitive Coordinates
 M_X = 0.28
@@ -34,7 +34,7 @@ M_Z = 1.55
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-SCREEN_SIZE = [1.6, 0.9]  # Monitor Approximation
+SCREEN_SIZE = [1.6, 0.9]  # Monitor Size Approximation
 SCREEN_HEIGHT = 2
 
 # Sensor Attributes
@@ -80,15 +80,11 @@ DB_SPREAD_THRES = 0.7
 DB_INNER_EPS = 0.1
 DB_INNER_MIN_SAMPLES = 8
 DB_MIN_SAMPLES_MAX = 25
-m = (DB_INNER_MIN_SAMPLES - DB_MIN_SAMPLES_MAX) / 10
-
-
-def db_min_sample(y):
-    return int(DB_MIN_SAMPLES_MAX - m * y)
 
 
 ###### Tracking and Kalman ######
 # Tracks
+TR_MAX_TRACKS = 2
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
@@ -106,74 +102,74 @@ KF_GROUP_DISP_EST_INIT = 0.1
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
-KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]  # Revise
-KF_A_SPR = 0.9  # Revise
+KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]
+KF_A_SPR = 0.9
 
 ############### Model ####################
 # Intensity Normalization
 INTENSITY_MU = 193
 INTENSITY_STD = 252
 
-MODEL_MIN_INPUT = 0
+MODEL_MIN_INPUT = 10
 MODEL_DEFAULT_POSTURE = np.array(
     [
-        0.00000000,
-        -0.00079287,
-        -0.00069028,
-        -0.00386972,
-        -0.18202336,
-        -0.25408896,
-        -0.25791826,
-        0.18307304,
-        0.29578214,
-        0.29407474,
-        -0.08050454,
-        -0.11416449,
-        -0.12328033,
-        -0.13587935,
-        0.07962164,
-        0.14361644,
-        0.15583284,
-        0.17200874,
-        -0.00076715,
-        0.76999552,
-        1.09064452,
-        1.40205857,
-        1.55136266,
-        1.28932279,
-        1.03600181,
-        0.79945567,
-        1.28655952,
-        1.04830291,
-        0.81176811,
-        0.76708653,
-        0.34282525,
-        0.00000000,
-        -0.07469891,
-        0.77131499,
-        0.37066848,
-        -0.01288807,
-        -0.07960824,
-        1.32559470,
-        0.07527616,
-        0.05331851,
-        0.02032234,
-        0.00000000,
-        0.04961569,
-        0.13505063,
-        0.13039448,
-        0.03457985,
-        0.12770589,
-        0.10500648,
-        0.03924988,
-        0.05333718,
-        0.07861458,
-        -0.00562979,
-        0.03460233,
-        -0.00071120,
-        0.06832139,
-        -0.00826901,
-        0.03123243,
+        0.0000,
+        -0.0007,
+        -0.0006,
+        -0.0038,
+        -0.1820,
+        -0.2540,
+        -0.2579,
+        0.1830,
+        0.2957,
+        0.2940,
+        -0.0805,
+        -0.1141,
+        -0.1232,
+        -0.1358,
+        0.0796,
+        0.1436,
+        0.1558,
+        0.1720,
+        -0.0007,
+        0.7699,
+        1.0906,
+        1.4020,
+        1.5513,
+        1.2893,
+        1.0360,
+        0.7994,
+        1.2865,
+        1.0483,
+        0.8117,
+        0.7670,
+        0.3428,
+        0.0000,
+        -0.0746,
+        0.7713,
+        0.3706,
+        -0.0128,
+        -0.0796,
+        1.3255,
+        0.0752,
+        0.0533,
+        0.0203,
+        0.0000,
+        0.0496,
+        0.1350,
+        0.1303,
+        0.0345,
+        0.1277,
+        0.1050,
+        0.0392,
+        0.0533,
+        0.0786,
+        -0.0056,
+        0.0346,
+        -0.0007,
+        0.0683,
+        -0.0082,
+        0.0312,
     ]
 )
 
@@ -249,12 +245,4 @@ class CONST_VEL_MODEL:
         )
 
 
-ENABLE_STATIC_CLUTTER = False
 MOTION_MODEL = CONST_ACC_MODEL
-PROFILING = False
-SYSTEM_MODE = OFFLINE  # OFFLINE / ONLINE
-SCREEN_CONNECTED = False
-
-
-# q2 = Q_continuous_white_noise(dim=3, dt=FB_DT, var=KF_Q_STD)
-# KF_Q_CONT = block_diag(q2, q2)

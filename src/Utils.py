@@ -5,15 +5,6 @@ import math
 import csv
 import numpy as np
 import os
-from keras.models import load_model
-
-
-class PostureEstimation:
-    def __init__(self, model_dir):
-        self.model = load_model(model_dir)
-
-    def estimate_posture(self, frame_matrices):
-        return self.model.predict(frame_matrices)
 
 
 class RingBuffer:
@@ -60,6 +51,32 @@ class RingBuffer:
 
 
 class OfflineManager:
+    """
+    A class for managing the reading of frames from an offline experiment file.
+
+    Attributes
+    ----------
+    experiment_path : str
+        The path to the directory containing the experiment files.
+    frame_count : int
+        The count of frames read so far.
+    pointer : List[int]
+        A list containing two integers: the index of the last read frame and the index of the current file being read.
+    pointclouds : Dict[int, Dict[str, List[float]]]
+        A dictionary containing point cloud data for each frame.
+    last_frame : int or None
+        The index of the last frame read from the experiment file, or None if the experiment has finished.
+
+    Methods
+    -------
+    read_next_frames()
+        Read the next batch of frames from the experiment file.
+    get_data()
+        Get the data for the current frame.
+    is_finished() -> bool
+        Check if the offline experiment has finished.
+    """
+
     def __init__(self, experiment_path):
         self.experiment_path = experiment_path
         self.frame_count = 0
@@ -125,6 +142,19 @@ class OfflineManager:
                 break
 
     def get_data(self):
+        """
+        Get the data for the current frame.
+
+        Returns
+        -------
+        exists : bool
+            True if data for the current frame exists, False otherwise.
+        frame_count : int
+            The count of frames read so far.
+        data : dict or None
+            The point cloud data for the current frame, or None if data for the frame is not available.
+        """
+
         self.frame_count += 1
         # If the read buffer is parsed, read more frames from the experiment file
         if self.frame_count > self.last_frame:
@@ -136,49 +166,57 @@ class OfflineManager:
             return False, self.frame_count, None
 
     def is_finished(self):
-        # If last_frame is None the offline experiment has reached its end or the experiment file was not found
+        """
+        Check if the offline experiment has finished.
+
+        Returns
+        -------
+        bool
+            True if the experiment has finished (last_frame is None), False otherwise.
+        """
         return self.last_frame is None
 
 
-def calc_projection_points(value, y, vertical_axis=False):
+def calc_projection_points(x_origin, y_origin, z_origin):
     """
     Calculate the screen projection of a point based on its distance from a reference point.
 
     Parameters
     ----------
-    value : float
-        The distance value from the reference point along the specified axis (x: horizontal / z: vertical).
+    x_origin : float
+        The reference point coordinate along the x axis.
 
-    y : float
-        The distance value from the reference point along the y axis.
+    y_origin : float
+        The reference point coordinate along the y axis.
 
-    vertical_axis : bool, optional
-        Flag indicating whether the axis is vertical (True) or horizontal (False).
-        Default is False.
+    z_origin : float
+        The reference point coordinate along the z (vertical) axis.
 
     Returns
     -------
-    float
-        The screen projection value of the point on the chosen axis (x / z).
+    tuple of floats
+        The (x,z) coordinates of the point where the line that connects the reference point
+        and the sensitive component of the system, cuts the screen.
 
     """
 
-    y_dist = y - const.M_Y
+    x_dist = x_origin - const.M_X
+    y_dist = y_origin - const.M_Y
+    z_dist = z_origin - const.M_Z
 
-    if not vertical_axis:
-        x_dist = value - const.M_X
-        if x_dist == 0:
-            return value
-        x1 = -const.M_Y / (y_dist / x_dist)
-        screen_projection = x1 + const.M_X
+    if x_dist == 0:
+        x_proj = x_origin
     else:
-        z_dist = value - const.M_Z
-        if z_dist == 0:
-            return value
-        z1 = -const.M_Y / (y_dist / z_dist)
-        screen_projection = z1 + const.M_Z
+        x1 = -const.M_Y / (y_dist / x_dist)
+        x_proj = x1 + const.M_X
 
-    return screen_projection
+    if z_dist == 0:
+        z_proj = z_origin
+    else:
+        z1 = -const.M_Y / (y_dist / z_dist)
+        z_proj = z1 + const.M_Z
+
+    return x_proj, z_proj
 
 
 def altered_EuclideanDist(p1, p2):
@@ -301,18 +339,12 @@ def point_transform_to_standard_axis(input):
     )
 
 
-def preprocess_data(detObj):
+def normalize_data(detObj):
     """
     Preprocesses the point cloud data from the sensor.
 
     This function filters the input point cloud, converts radial to Cartesian velocity,
     and transforms the coordinates to the standard vertical-horizontal plane axis system.
-
-    - Performs a Doppler check and applies static clutter filtering if enabled.
-    - Transforms radial velocity into Cartesian components.
-    - Translates points to a new coordinate system.
-    - Applies scene constraints filtering based on z-coordinate and y-coordinate.
-
 
     Parameters
     ----------
@@ -322,6 +354,7 @@ def preprocess_data(detObj):
         - "y": y-coordinate
         - "z": z-coordinate
         - "doppler": Doppler velocity
+        - "peakVal": Signal Intensity
 
     Returns
     -------
@@ -334,8 +367,10 @@ def preprocess_data(detObj):
         - Cartesian velocity along the x-axis
         - Cartesian velocity along the y-axis
         - Cartesian velocity along the z-axis
-
+        - doppler
+        - peakval
     """
+
     input_data = np.vstack(
         (detObj["x"], detObj["y"], detObj["z"], detObj["doppler"], detObj["peakVal"])
     ).T
@@ -399,7 +434,74 @@ def preprocess_data(detObj):
     return ef_data
 
 
-def revert_static_skeleton(reshaped_keypoints: np.array, centroid):
-    reshaped_keypoints[0] += centroid[0]
-    reshaped_keypoints[2] += centroid[1]
-    return reshaped_keypoints
+def relative_coordinates(absolute_coords: np.array, reference: np.array):
+    """
+    Calculate relative coordinates on the x and y axes with respect to a reference point.
+
+    Parameters
+    ----------
+    absolute_coords : np.array
+        Array of absolute coordinates.
+    reference : np.array
+        Reference point to calculate relative coordinates with respect to.
+
+    Returns
+    -------
+    np.array
+        Array of relative coordinates.
+    """
+    return np.array(
+        [
+            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+            for point in absolute_coords
+        ]
+    )
+
+
+def format_single_frame(
+    track_cloud: np.array, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
+):
+    """
+    Format a single frame of track cloud data.
+
+    This function normalizes the intensity values of the track cloud data, pads or cuts the data to ensure a
+    fixed length of 64 points, sorts the data based on the x-coordinate, and reshapes it into an 8x8 matrix.
+
+    Parameters
+    ----------
+    track_cloud : np.array
+        The track cloud data to be formatted, containing columns for x, y, z, r', intensity.
+    mean : float, optional
+        The mean value used for intensity normalization (default is const.INTENSITY_MU).
+    std_dev : float, optional
+        The standard deviation used for intensity normalization (default is const.INTENSITY_STD).
+
+    Returns
+    -------
+    np.array
+        The formatted single frame data reshaped into an 8x8 matrix, with columns for x, y, z, r', intensity.
+
+    """
+    track_cloud_len = len(track_cloud)
+
+    # Normalize Intensity
+    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
+
+    # Pad or cut
+    if track_cloud_len < 64:
+        num_to_pad = 64 - track_cloud_len
+        zero_arrays = np.zeros((num_to_pad, 5))
+        padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
+    else:
+        padded_data = track_cloud[:64]
+
+    # Sort
+    sorted_indices = np.argsort(padded_data[:, 0])
+    sorted_data = padded_data[sorted_indices]
+
+    ##################
+
+    ##################
+
+    # Resize to matrix
+    return sorted_data.reshape((8, 8, 5))

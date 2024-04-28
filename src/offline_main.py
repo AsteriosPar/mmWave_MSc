@@ -1,61 +1,69 @@
-import time
+import sys
 import os
+from PyQt5.QtWidgets import QApplication
+from wakepy import keep
 import constants as const
-from Utils import (
-    preprocess_data,
-    OfflineManager,
-)
+from Visualizer import VisualManager
+from Utils import OfflineManager, normalize_data
+from keras.models import load_model
 from Tracking import (
     TrackBuffer,
     BatchedData,
 )
 
+########### Set the experiment path here ############
 
-def main():
-    experiment_path = os.path.join(const.P_LOG_PATH, const.P_EXPERIMENT_FILE_READ)
+EXPERIMENT_PATH = "./dataset/log/mmWave/merged"
+
+#####################################################
+
+
+def offline_main():
+    experiment_path = EXPERIMENT_PATH
     if not os.path.exists(experiment_path):
         raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
-    SLEEPTIME = 0.1
-    trackbuffer = TrackBuffer()
-    batch = BatchedData()
     sensor_data = OfflineManager(experiment_path)
+    SLEEPTIME = 0.1  # from radar config "frameCfg"
 
-    while True:
-        try:
-            t0 = time.time()
-            dataOk, _, detObj = sensor_data.get_data()
-            if dataOk:
-                now = time.time()
-                trackbuffer.dt = now - trackbuffer.t
-                trackbuffer.t = now
-                effective_data = preprocess_data(detObj)
+    app = QApplication(sys.argv)
 
-                if effective_data.shape[0] != 0:
-                    trackbuffer.track(effective_data, batch)
+    visual = VisualManager()
 
-                    # frame_matrices = np.array(
-                    #     [
-                    #         preprocess_single_frame(
-                    #             # NOTE: The inputs are in the form of [x, y, z, x', y', z', r', s]
-                    #             track.batch.effective_data[:, [0, 1, 2, -2, -1]]
-                    #         )
-                    #         for track in trackbuffer.effective_tracks
-                    #     ]
-                    # )
-                    # frame_keypoints = model.estimate_posture(frame_matrices)
+    trackbuffer = TrackBuffer()
+    model = load_model(const.P_MODEL_PATH)
+    batch = BatchedData()
+    first_iter = True
 
-            # Check if experiment is finished
-            if sensor_data.is_finished():
+    # Disable screen sleep/screensaver
+    with keep.presenting():
+        # Control loop
+        while not sensor_data.is_finished():
+            try:
+                dataOk, _, detObj = sensor_data.get_data()
+
+                if dataOk:
+                    if first_iter:
+                        trackbuffer.dt = SLEEPTIME
+                        first_iter = False
+                    else:
+                        trackbuffer.dt = detObj["posix"][0] / 1000 - trackbuffer.t
+
+                    trackbuffer.t = detObj["posix"][0] / 1000
+                    # Apply scene constraints, translation and static clutter removal
+                    effective_data = normalize_data(detObj)
+
+                    if effective_data.shape[0] != 0:
+                        # Tracking module
+                        trackbuffer.track(effective_data, batch)
+
+                        # Posture Estimation module
+                        trackbuffer.estimate_posture(model)
+
+                    visual.update(trackbuffer, detObj)
+
+            except KeyboardInterrupt:
                 break
 
-            # Emulate the sensor frequency
-            t_code = time.time() - t0
-            time.sleep(max(0, SLEEPTIME - t_code))
 
-        except KeyboardInterrupt:
-            break
-
-
-if __name__ == "__main__":
-    main()
+offline_main()

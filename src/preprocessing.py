@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import shutil
 import os
-import os
 import csv
 import constants as const
 from Utils import (
-    preprocess_data,
+    normalize_data,
     OfflineManager,
+    format_single_frame,
+    relative_coordinates,
 )
 from Tracking import (
     TrackBuffer,
@@ -44,16 +45,6 @@ def pair(experiment):
                     pairs.append((int(row1[0]), closest_row.iloc[0, 1]))
     # print(len(pairs))
     return pairs
-
-
-def relative_coordinates(absolute_coords: np.array, reference: np.array):
-    # NOTE: Keep the z-axis intact to not add noise
-    return np.array(
-        [
-            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
-            for point in absolute_coords
-        ]
-    )
 
 
 def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
@@ -131,10 +122,10 @@ def relative_kinect(row, centroid):
 
 def static_kinect(row):
     # NOTE: the static skeleton has its lower back on the x=0 plane and its left foot on the z=0 plane
-    # Lower back x: row[2], Left foot z: row[39]
+    # Lower back x: row[2], feet z: row[39], row[51]
     x_abs = float(row[2])
     y_abs = float(row[13])
-    z_abs = float(row[39])
+    z_abs = min(float(row[39]), float(row[51]))
     for i in range(2, len(row) - 1):
         # For all x coords
         if i % 3 == 2:
@@ -190,7 +181,7 @@ def preprocess_dataset():
                         trackbuffer.dt = detObj["posix"][0] / 1000 - trackbuffer.t
 
                     trackbuffer.t = detObj["posix"][0] / 1000
-                    effective_data = preprocess_data(detObj)
+                    effective_data = normalize_data(detObj)
 
                     if effective_data.shape[0] != 0:
                         trackbuffer.track(effective_data, batch)
@@ -290,34 +281,6 @@ def find_intensity_normalizers(sets):
 
     print(f"Mean: {mean}, STD: {std_dev}")
     return mean, std_dev
-
-
-def format_single_frame(
-    track_cloud: np.array, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
-):
-    track_cloud_len = len(track_cloud)
-
-    # Normalize Intensity
-    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
-
-    # Pad or cut
-    if track_cloud_len < 64:
-        num_to_pad = 64 - track_cloud_len
-        zero_arrays = np.zeros((num_to_pad, 5))
-        padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
-    else:
-        padded_data = track_cloud[:64]
-
-    # Sort
-    sorted_indices = np.argsort(padded_data[:, 0])
-    sorted_data = padded_data[sorted_indices]
-
-    ##################
-
-    ##################
-
-    # Resize to matrix
-    return sorted_data.reshape((8, 8, 5))
 
 
 def format_mmwave_to_npy(mean, std_dev, mode):

@@ -8,29 +8,48 @@ from matplotlib.patches import Patch
 
 import constants as const
 from Tracking import TrackBuffer, ClusterTrack
-from Utils import calc_projection_points, revert_static_skeleton
+from Utils import calc_projection_points
 
 
 def calc_fade_square(track: ClusterTrack):
-    coords = np.array(
-        [
-            track.state.x[0],
-            track.state.x[1],
-            track.state.x[2],
-        ]
-    ).flatten()
-    center_x = calc_projection_points(value=coords[0], y=coords[1])
-    center_z = track.height_buffer.get_mean()
-    center = [center_x, center_z]
+    # coords = np.array(
+    #     [
+    #         track.state.x[0],
+    #         track.state.x[1],
+    #         track.state.x[2],
+    #     ]
+    # ).flatten()
+    center = calc_projection_points(
+        track.keypoints[11], track.keypoints[12], track.keypoints[13]
+    )
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
-        track.width_buffer.get_max(),
         min(
             const.V_SCREEN_FADE_SIZE_MAX,
-            const.V_SCREEN_FADE_SIZE_MAX - coords[1] * const.V_SCREEN_FADE_WEIGHT,
+            const.V_SCREEN_FADE_SIZE_MAX
+            - track.keypoints[12] * const.V_SCREEN_FADE_WEIGHT,
         ),
     )
     return (center, rect_size)
+
+
+class VisualManager:
+    def __init__(self):
+        self.mode = const.SCREEN_CONNECTED
+        if self.mode:
+            self.visual = ScreenAdapter()
+        else:
+            self.visual = Visualizer(raw_cloud=False, b_boxes=True, posture=True)
+
+    def update(self, trackbuffer, detObj):
+        if const.SCREEN_CONNECTED:
+            self.visual.update(trackbuffer)
+        else:
+            self.visual.clear()
+            self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
+            self.visual.update_bb(trackbuffer)
+            self.visual.update_posture(trackbuffer.effective_tracks)
+            self.visual.draw()
 
 
 class Visualizer:
@@ -54,25 +73,26 @@ class Visualizer:
 
         # Create subplot of raw pointcloud
         if raw_cloud:
-            self.ax_raw = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.ax_raw = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.raw_scatter = self.setup_subplot(self.ax_raw)
             self.ax_raw.set_title("Scatter plot of raw Point Cloud")
             plots_index += 1
 
         if b_boxes:
             # Create subplot of tracks and predictions
-            self.ax_bb = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.ax_bb = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.setup_subplot(self.ax_bb)
             self.bb_scatter = None
             legend_handles = [
-                Patch(color="red", label="Predicted Track"),
-                Patch(color="green", label="Measured Track"),
+                Patch(color="red", label="Motion Model Prediction"),
+                Patch(color="green", label="Pointcloud's Position"),
+                Patch(color="blue", label="Kalman Filter Output"),
             ]
             self.ax_bb.legend(handles=legend_handles)
             plots_index += 1
 
         if posture:
-            self.ax_post = fig.add_subplot(plots_num, 1, plots_index, projection="3d")
+            self.ax_post = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.setup_subplot(self.ax_post)
             self.post_scatter = None
             # Define connections and keypoints
@@ -124,6 +144,9 @@ class Visualizer:
         plt.show(block=False)
 
     def clear(self):
+        if not hasattr(self, "ax_bb"):
+            return
+
         # Remove pointcloud
         if self.bb_scatter is not None:
             self.bb_scatter.remove()
@@ -138,6 +161,9 @@ class Visualizer:
             patch.remove()
 
     def update_raw(self, x, y, z):
+        if not hasattr(self, "ax_raw"):
+            return
+
         # Update the data in the 3D scatter plot
         self.raw_scatter._offsets3d = (x, y, z)
         plt.draw()
@@ -180,7 +206,9 @@ class Visualizer:
         return cube
 
     def draw_fading_window(self, track):
+        print("eneterd")
         (center, rect_size) = calc_fade_square(track)
+        print(center, rect_size)
         vertices = [
             (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
             (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
@@ -194,6 +222,9 @@ class Visualizer:
         return rectangle
 
     def update_bb(self, trackbuffer: TrackBuffer):
+        if not hasattr(self, "ax_bb"):
+            return
+
         x_all = np.array([])  # Initialize as empty NumPy arrays
         y_all = np.array([])
         z_all = np.array([])
@@ -229,16 +260,21 @@ class Visualizer:
             x_all, y_all, z_all, c=color_all, marker="o"
         )
         self.ax_bb.set_title(
-            f"Track Number: {len(trackbuffer.effective_tracks)}", loc="left"
+            f"Tracks Number: {len(trackbuffer.effective_tracks)}", loc="left"
         )
 
     def update_posture(self, tracks):
+        if not hasattr(self, "ax_post"):
+            return
+
         # NOTE: the keypoints have a shape (num_of_tracks, 19)
         self.ax_post.clear()
         self.setup_subplot(self.ax_post)
         for track in tracks:
             reshaped_data = track.keypoints.reshape(3, -1)
-            revert_static_skeleton(reshaped_data, track.cluster.centroid)
+            reshaped_data[0] += track.cluster.centroid[0]
+            reshaped_data[2] += track.cluster.centroid[1]
+            # revert_static_skeleton(reshaped_data, track.cluster.centroid)
             for connection in self.connections:
                 keypoint_1 = connection[0]
                 keypoint_2 = connection[1]
