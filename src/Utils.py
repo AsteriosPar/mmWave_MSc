@@ -434,32 +434,48 @@ def normalize_data(detObj):
     return ef_data
 
 
-def relative_coordinates(absolute_coords: np.array, reference: np.array):
+def relative_coordinates(absolute_coords, reference: np.array):
     """
     Calculate relative coordinates on the x and y axes with respect to a reference point.
 
     Parameters
     ----------
     absolute_coords : np.array
-        Array of absolute coordinates.
+        List of arrays of points in different frames.
     reference : np.array
         Reference point to calculate relative coordinates with respect to.
 
     Returns
     -------
     np.array
-        Array of relative coordinates.
+        list of arrays of relative coordinates.
     """
-    return np.array(
-        [
-            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
-            for point in absolute_coords
-        ]
-    )
+
+    relative_coords = []
+    for frame in absolute_coords:
+        print(f"Frame: {frame.shape}")
+        relative_coords.append(
+            np.array(
+                [
+                    point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+                    for point in frame
+                ]
+            )
+        )
+
+    print(len(relative_coords))
+
+    return relative_coords
+    # return np.array(
+    #     [
+    #         point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+    #         for point in absolute_coords
+    #     ]
+    # )
 
 
 def format_single_frame(
-    track_cloud: np.array, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
+    track_cloud, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
 ):
     """
     Format a single frame of track cloud data.
@@ -469,8 +485,8 @@ def format_single_frame(
 
     Parameters
     ----------
-    track_cloud : np.array
-        The track cloud data to be formatted, containing columns for x, y, z, r', intensity.
+    track_cloud : list
+        The list of track cloud data of different frames to be formatted, containing columns for x, y, z, r', intensity.
     mean : float, optional
         The mean value used for intensity normalization (default is const.INTENSITY_MU).
     std_dev : float, optional
@@ -482,26 +498,29 @@ def format_single_frame(
         The formatted single frame data reshaped into an 8x8 matrix, with columns for x, y, z, r', intensity.
 
     """
-    track_cloud_len = len(track_cloud)
 
-    # Normalize Intensity
-    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
+    sorted_data = np.array((64, 5))
 
-    # Pad or cut
-    if track_cloud_len < 64:
-        num_to_pad = 64 - track_cloud_len
-        zero_arrays = np.zeros((num_to_pad, 5))
-        padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
-    else:
-        padded_data = track_cloud[:64]
+    for frame_id, frame_cloud in enumerate(track_cloud):
 
-    # Sort
-    sorted_indices = np.argsort(padded_data[:, 0])
-    sorted_data = padded_data[sorted_indices]
+        print(frame_cloud.shape)
+        frame_cloud_final = frame_cloud[:, [0, 1, 2, -2, -1]]
+        track_cloud_len = len(frame_cloud_final)
 
-    ##################
+        # Normalize Intensity
+        frame_cloud_final[:, 4] = (frame_cloud_final[:, 4] - mean) / std_dev
 
-    ##################
+        # Pad or cut
+        if track_cloud_len < 32:
+            num_to_pad = 32 - track_cloud_len
+            zero_arrays = np.zeros((num_to_pad, 5))
+            padded_data = np.concatenate((frame_cloud_final, zero_arrays), axis=0)
+        else:
+            padded_data = frame_cloud_final[:32]
+
+        # Sort
+        sorted_indices = np.argsort(padded_data[:, 0])
+        sorted_data[frame_id * 32 : (frame_id + 1) * 32] = padded_data[sorted_indices]
 
     # Resize to matrix
     return sorted_data.reshape((8, 8, 5))
