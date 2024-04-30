@@ -12,22 +12,18 @@ from Utils import calc_projection_points
 
 
 def calc_fade_square(track: ClusterTrack):
-    # coords = np.array(
-    #     [
-    #         track.state.x[0],
-    #         track.state.x[1],
-    #         track.state.x[2],
-    #     ]
-    # ).flatten()
+
     center = calc_projection_points(
-        track.keypoints[11], track.keypoints[12], track.keypoints[13]
+        track.state.x[0] + track.keypoints[11],
+        track.state.x[1] + track.keypoints[12],
+        track.keypoints[13],
     )
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
         min(
             const.V_SCREEN_FADE_SIZE_MAX,
             const.V_SCREEN_FADE_SIZE_MAX
-            - track.keypoints[12] * const.V_SCREEN_FADE_WEIGHT,
+            - (track.state.x[1] + track.keypoints[12]) * const.V_SCREEN_FADE_WEIGHT,
         ),
     )
     return (center, rect_size)
@@ -36,10 +32,11 @@ def calc_fade_square(track: ClusterTrack):
 class VisualManager:
     def __init__(self):
         self.mode = const.SCREEN_CONNECTED
+        self.counter = 1
         if self.mode:
             self.visual = ScreenAdapter()
         else:
-            self.visual = Visualizer(raw_cloud=False, b_boxes=True, posture=True)
+            self.visual = Visualizer(raw_cloud=True, b_boxes=True, posture=True)
 
     def update(self, trackbuffer, detObj):
         if const.SCREEN_CONNECTED:
@@ -49,6 +46,8 @@ class VisualManager:
             self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
             self.visual.update_bb(trackbuffer)
             self.visual.update_posture(trackbuffer.effective_tracks)
+            plt.savefig(f"./gif/{self.counter}.png")
+            self.counter += 1
             self.visual.draw()
 
 
@@ -83,18 +82,20 @@ class Visualizer:
             self.ax_bb = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.setup_subplot(self.ax_bb)
             self.bb_scatter = None
-            legend_handles = [
-                Patch(color="red", label="Motion Model Prediction"),
-                Patch(color="green", label="Pointcloud's Position"),
-                Patch(color="blue", label="Kalman Filter Output"),
-            ]
-            self.ax_bb.legend(handles=legend_handles)
+            self.ax_bb.set_title("Target Tracking")
+            # legend_handles = [
+            #     Patch(color="red", label="Motion Model Prediction"),
+            #     Patch(color="green", label="Pointcloud's Position"),
+            #     Patch(color="blue", label="Kalman Filter Output"),
+            # ]
+            # self.ax_bb.legend(handles=legend_handles)
             plots_index += 1
 
         if posture:
             self.ax_post = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.setup_subplot(self.ax_post)
             self.post_scatter = None
+
             # Define connections and keypoints
             self.connections = [
                 (0, 1),  # SpineBase to SpineMid
@@ -140,7 +141,7 @@ class Visualizer:
                 "blue",  # SpineShoulder
             ]
             plots_index += 1
-
+        plt.tight_layout()
         plt.show(block=False)
 
     def clear(self):
@@ -259,9 +260,9 @@ class Visualizer:
         self.bb_scatter = self.ax_bb.scatter(
             x_all, y_all, z_all, c=color_all, marker="o"
         )
-        self.ax_bb.set_title(
-            f"Tracks Number: {len(trackbuffer.effective_tracks)}", loc="left"
-        )
+        # self.ax_bb.set_title(
+        #     f"Tracks Number: {len(trackbuffer.effective_tracks)}", loc="left"
+        # )
 
     def update_posture(self, tracks):
         if not hasattr(self, "ax_post"):
@@ -270,10 +271,11 @@ class Visualizer:
         # NOTE: the keypoints have a shape (num_of_tracks, 19)
         self.ax_post.clear()
         self.setup_subplot(self.ax_post)
+        self.ax_post.set_title("Posture Estimation")
         for track in tracks:
             reshaped_data = track.keypoints.reshape(3, -1)
-            reshaped_data[0] += track.cluster.centroid[0]
-            reshaped_data[2] += track.cluster.centroid[1]
+            reshaped_data[0] += track.state.x[0]
+            reshaped_data[2] += track.state.x[1]
             # revert_static_skeleton(reshaped_data, track.cluster.centroid)
             for connection in self.connections:
                 keypoint_1 = connection[0]
