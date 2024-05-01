@@ -46,8 +46,8 @@ class VisualManager:
             self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
             self.visual.update_bb(trackbuffer)
             self.visual.update_posture(trackbuffer.effective_tracks)
-            plt.savefig(f"./gif/{self.counter}.png")
-            self.counter += 1
+            # plt.savefig(f"./gif/{self.counter}.png")
+            # self.counter += 1
             self.visual.draw()
 
 

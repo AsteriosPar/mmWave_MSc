@@ -37,7 +37,7 @@ paper_result_list = []
 
 # define batch size and epochs
 batch_size = 128
-epochs = 150
+epochs = 100
 
 
 # define the model

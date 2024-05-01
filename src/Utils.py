@@ -453,7 +453,7 @@ def relative_coordinates(absolute_coords, reference: np.array):
 
     relative_coords = []
     for frame in absolute_coords:
-        print(f"Frame: {frame.shape}")
+        # print(f"Frame: {frame.shape}")
         relative_coords.append(
             np.array(
                 [
@@ -463,7 +463,7 @@ def relative_coordinates(absolute_coords, reference: np.array):
             )
         )
 
-    print(len(relative_coords))
+    # print(len(relative_coords))
 
     return relative_coords
     # return np.array(
@@ -499,11 +499,12 @@ def format_single_frame(
 
     """
 
-    sorted_data = np.array((64, 5))
+    sorted_data = np.zeros((64, 5))
+    slices_len = 64 // (const.FB_FRAMES_BATCH + 1)
 
     for frame_id, frame_cloud in enumerate(track_cloud):
 
-        print(frame_cloud.shape)
+        # print(frame_cloud.shape)
         frame_cloud_final = frame_cloud[:, [0, 1, 2, -2, -1]]
         track_cloud_len = len(frame_cloud_final)
 
@@ -511,16 +512,58 @@ def format_single_frame(
         frame_cloud_final[:, 4] = (frame_cloud_final[:, 4] - mean) / std_dev
 
         # Pad or cut
-        if track_cloud_len < 32:
-            num_to_pad = 32 - track_cloud_len
+        if track_cloud_len < slices_len:
+            num_to_pad = slices_len - track_cloud_len
             zero_arrays = np.zeros((num_to_pad, 5))
             padded_data = np.concatenate((frame_cloud_final, zero_arrays), axis=0)
         else:
-            padded_data = frame_cloud_final[:32]
+            padded_data = frame_cloud_final[:slices_len]
 
         # Sort
         sorted_indices = np.argsort(padded_data[:, 0])
-        sorted_data[frame_id * 32 : (frame_id + 1) * 32] = padded_data[sorted_indices]
+        sorted_data[frame_id * slices_len : (frame_id + 1) * slices_len] = padded_data[
+            sorted_indices
+        ]
+
+        # print(sorted_data)
 
     # Resize to matrix
     return sorted_data.reshape((8, 8, 5))
+
+
+def format_single_frame_lite(track_cloud):
+
+    sorted_data = np.zeros((64, 5))
+    slices_len = 64 // (const.FB_FRAMES_BATCH + 1)
+
+    for frame_id, frame_cloud in enumerate(track_cloud):
+
+        frame_cloud_final = frame_cloud[:, [0, 1, 2, -2, -1]]
+        track_cloud_len = len(frame_cloud_final)
+
+        # Pad or cut
+        if track_cloud_len < slices_len:
+            num_to_pad = slices_len - track_cloud_len
+            zero_arrays = np.zeros((num_to_pad, 5))
+            padded_data = np.concatenate((frame_cloud_final, zero_arrays), axis=0)
+        else:
+            padded_data = frame_cloud_final[:slices_len]
+
+        # Sort
+        sorted_indices = np.argsort(padded_data[:, 0])
+        sorted_data[frame_id * slices_len : (frame_id + 1) * slices_len] = padded_data[
+            sorted_indices
+        ]
+
+        # print(sorted_data)
+
+    # Resize to matrix
+    return sorted_data
+
+
+def format_single_frame_pre(track_cloud: np.array, mean, std_dev):
+
+    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
+
+    # Resize to matrix
+    return track_cloud.reshape((8, 8, 5))

@@ -7,8 +7,10 @@ import constants as const
 from Utils import (
     normalize_data,
     OfflineManager,
+    format_single_frame_pre,
     format_single_frame,
     relative_coordinates,
+    format_single_frame_lite,
 )
 from Tracking import (
     TrackBuffer,
@@ -47,7 +49,7 @@ def pair(experiment):
     return pairs
 
 
-def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
+def filter_kinect_frames(pairs, invalid_frames, experiment):
     input_file = os.path.join(
         f"{const.P_LOG_PATH}{const.P_KINECT_DIR}", f"{experiment}.csv"
     )
@@ -166,7 +168,6 @@ def preprocess_dataset():
 
         first_iter = True
         invalid_frames = []
-        centroids = []
         while not sensor_data.is_finished():
 
             valid_frame = False
@@ -199,25 +200,24 @@ def preprocess_dataset():
 
                                 if RELATIVE_ENABLED:
                                     track_points = relative_coordinates(
-                                        track_points,
+                                        list(
+                                            trackbuffer.effective_tracks[0].batch.buffer
+                                        ),
                                         trackbuffer.effective_tracks[
                                             0
                                         ].cluster.centroid,
                                     )
-                                    centroids.append(
-                                        trackbuffer.effective_tracks[
-                                            0
-                                        ].cluster.centroid[:2],
-                                    )
+
+                                final_frames = format_single_frame_lite(track_points)
 
                                 # Save effective data in a .csv
                                 data = {
                                     "Frame": framenum,
-                                    "X": track_points[:, 0],
-                                    "Y": track_points[:, 1],
-                                    "Z": track_points[:, 2],
-                                    "Doppler": track_points[:, 6],
-                                    "Intensity": track_points[:, 7],
+                                    "X": final_frames[:, 0],
+                                    "Y": final_frames[:, 1],
+                                    "Z": final_frames[:, 2],
+                                    "Doppler": final_frames[:, 3],
+                                    "Intensity": final_frames[:, 4],
                                 }
 
                                 # Store data in the data path
@@ -261,7 +261,7 @@ def preprocess_dataset():
         df = pd.DataFrame(data_buffer)
         df.to_csv(cur_file, mode="a", index=False, header=False)
 
-        filter_kinect_frames(frame_pairs, invalid_frames, experiment, centroids)
+        filter_kinect_frames(frame_pairs, invalid_frames, experiment)
 
 
 def find_intensity_normalizers(sets):
@@ -311,7 +311,9 @@ def format_mmwave_to_npy(mean, std_dev, mode):
 
                     else:
                         main_list.append(
-                            format_single_frame(np.array(frame_array), mean, std_dev)
+                            format_single_frame_pre(
+                                np.array(frame_array), mean, std_dev
+                            )
                         )
 
                         frame_array = []
@@ -319,7 +321,7 @@ def format_mmwave_to_npy(mean, std_dev, mode):
                         frame_array.append(row[1:6])
 
                 main_list.append(
-                    format_single_frame(np.array(frame_array), mean, std_dev)
+                    format_single_frame_pre(np.array(frame_array), mean, std_dev)
                 )
     print(np.array(main_list).shape)
     # Save to output .npy file
@@ -371,8 +373,8 @@ def extract_parts(filename):
 
 
 def split_sets():
-    validate_prefix = ["A5"]
-    testing_prefix = ["A4"]
+    validate_prefix = ["A5", "B3", "B9"]
+    testing_prefix = ["A4", "B4", "B10"]
 
     kinect_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}/"
     mmwave_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/"
@@ -415,4 +417,4 @@ def split_sets():
 
 # preprocess_dataset()
 # split_sets()
-# format_dataset()
+format_dataset()

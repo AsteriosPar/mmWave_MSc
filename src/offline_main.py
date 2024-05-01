@@ -13,17 +13,16 @@ from Tracking import (
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/merged"
+EXPERIMENT_PATH = "./gif/merged"
 
 #####################################################
 
 
 def offline_main():
-    experiment_path = EXPERIMENT_PATH
-    if not os.path.exists(experiment_path):
-        raise ValueError(f"No experiment file found in the path: {experiment_path}")
+    if not os.path.exists(EXPERIMENT_PATH):
+        raise ValueError(f"No experiment file found in the path: {EXPERIMENT_PATH}")
 
-    sensor_data = OfflineManager(experiment_path)
+    sensor_data = OfflineManager(EXPERIMENT_PATH)
     SLEEPTIME = 0.1  # from radar config "frameCfg"
 
     app = QApplication(sys.argv)

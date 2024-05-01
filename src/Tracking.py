@@ -35,7 +35,7 @@ class BatchedData(RingBuffer):
     - pop_frame(): Remove the oldest frame from the buffer.
     """
 
-    def __init__(self, init_data=None):
+    def __init__(self, init_data=np.empty((0, 8))):
         super().__init__(const.FB_FRAMES_BATCH + 1, init_val=init_data)
 
         self.effective_data = np.concatenate(list(self.buffer), axis=0)
