@@ -49,7 +49,7 @@ def offline_main():
                         trackbuffer.dt = detObj["posix"][0] / 1000 - trackbuffer.t
 
                     trackbuffer.t = detObj["posix"][0] / 1000
-                    # Apply scene constraints, translation and static clutter removal
+                    # Apply scene constraints, point translation and axis normalization
                     effective_data = normalize_data(detObj)
 
                     if effective_data.shape[0] != 0:

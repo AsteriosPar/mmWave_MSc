@@ -8,7 +8,7 @@ from keras.models import Model
 from keras.layers import Dense
 from keras.layers import Input
 from keras.layers import Flatten
-from keras.layers import Conv2D
+from keras.layers import Conv3D
 from keras.layers import BatchNormalization
 from keras.layers import Dropout
 
@@ -44,12 +44,12 @@ epochs = 100
 def define_CNN(in_shape, n_keypoints):
 
     in_one = Input(shape=in_shape)
-    conv_one_1 = Conv2D(
-        16, kernel_size=(3, 3), activation="relu", strides=(1, 1), padding="same"
+    conv_one_1 = Conv3D(
+        16, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
     )(in_one)
     conv_one_1 = Dropout(0.3)(conv_one_1)
-    conv_one_2 = Conv2D(
-        32, kernel_size=(3, 3), activation="relu", strides=(1, 1), padding="same"
+    conv_one_2 = Conv3D(
+        32, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
     )(conv_one_1)
     conv_one_2 = Dropout(0.3)(conv_one_2)
 
@@ -57,7 +57,7 @@ def define_CNN(in_shape, n_keypoints):
 
     fe = Flatten()(conv_one_2)
     # dense1
-    dense_layer1 = Dense(512, activation="relu")(fe)
+    dense_layer1 = Dense(3 * 512, activation="relu")(fe)
     dense_layer1 = BatchNormalization(momentum=0.95)(dense_layer1)
     # # dropout
 
