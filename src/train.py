@@ -21,15 +21,25 @@ the model architecture of MARS.
 path = os.getcwd()
 os.chdir(path)
 
+# np_load_old = np.load
+
+# # modify the default parameters of np.load
+# np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True, **k)
 
 # load the feature and labels, 24066, 8033, and 7984 frames for train, validate, and test
 featuremap_train = np.load("./dataset/formatted/mmWave/training_mmWave.npy")
 featuremap_validate = np.load("./dataset/formatted/mmWave/validate_mmWave.npy")
 featuremap_test = np.load("./dataset/formatted/mmWave/testing_mmWave.npy")
 
+# print(featuremap_train.shape, featuremap_validate.shape, featuremap_test.shape)
+
 labels_train = np.load("./dataset/formatted/kinect/training_labels.npy")
 labels_validate = np.load("./dataset/formatted/kinect/validate_labels.npy")
 labels_test = np.load("./dataset/formatted/kinect/testing_labels.npy")
+
+
+# restore np.load for future normal usage
+# np.load = np_load_old
 
 # Initialize the result array
 paper_result_list = []
@@ -68,7 +78,7 @@ def define_CNN(in_shape, n_keypoints):
 
     # model
     model = Model(in_one, out_layer)
-    opt = Adam(lr=0.001, beta_1=0.5)
+    opt = Adam(learning_rate=0.001, beta_1=0.5)
 
     # compile the model
     model.compile(

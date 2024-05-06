@@ -269,12 +269,13 @@ def find_intensity_normalizers(sets):
     for mode in sets:
         experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
         for experiment in os.listdir(experiments_directory):
-            input_path = os.path.join(experiments_directory, experiment)
-            for filename in os.listdir(input_path):
-                with open(os.path.join(input_path, filename), "r") as file:
-                    csv_reader = csv.reader(file)
-                    for row in csv_reader:
-                        intensities.append(float(row[5]))
+            if experiment.find("N_") == -1:
+                input_path = os.path.join(experiments_directory, experiment)
+                for filename in os.listdir(input_path):
+                    with open(os.path.join(input_path, filename), "r") as file:
+                        csv_reader = csv.reader(file)
+                        for row in csv_reader:
+                            intensities.append(float(row[5]))
 
     mean = np.mean(intensities)
     std_dev = np.std(intensities)
@@ -292,36 +293,43 @@ def format_mmwave_to_npy(mean, std_dev, mode):
     experiments_sorted = sorted(experiments, key=extract_parts)
 
     for experiment in experiments_sorted:
+        print(f"doing {experiment}")
         experiment_path = os.path.join(experiments_directory, experiment)
         filenames = os.listdir(experiment_path)
         filenames_sorted = sorted(filenames, key=lambda x: int(os.path.splitext(x)[0]))
         for filename in filenames_sorted:
-            print(f"doing {experiment}, {filename}...")
             with open(os.path.join(experiment_path, filename), "r") as file:
-                df = pd.read_csv(file, header=None)
+                # csv.reader(file)
+                reader = csv.reader(file)
+                rows = list(reader)
+
+                # df = pd.read_csv(file, header=None)
                 current_frame = None
                 frame_array = []
-                for _, row in df.iterrows():
+                # for _, row in df.iterrows():
+                for row in rows:
                     if current_frame is None:
-                        current_frame = row[0]
-                        frame_array.append(row[1:6])
+                        current_frame = int(row[0])
+                        frame_array.append([float(i) for i in row[1:6]])
 
-                    elif current_frame == row[0]:
-                        frame_array.append(row[1:6])
+                    elif current_frame == int(row[0]):
+                        frame_array.append([float(i) for i in row[1:6]])
 
                     else:
                         main_list.append(
                             format_single_frame_pre(
-                                np.array(frame_array), mean, std_dev
+                                np.array(frame_array, dtype=np.float32), mean, std_dev
                             )
                         )
 
                         frame_array = []
-                        current_frame = row[0]
-                        frame_array.append(row[1:6])
+                        current_frame = int(row[0])
+                        frame_array.append([float(i) for i in row[1:6]])
 
                 main_list.append(
-                    format_single_frame_pre(np.array(frame_array), mean, std_dev)
+                    format_single_frame_pre(
+                        np.array(frame_array, dtype=np.float32), mean, std_dev
+                    )
                 )
     print(np.array(main_list).shape)
     # Save to output .npy file
@@ -415,6 +423,52 @@ def split_sets():
                     )
 
 
-# preprocess_dataset()
-# split_sets()
+def add_noise():
+    mean = 0.0
+    std = 0.044
+    sets = ["training", "validate", "testing"]
+
+    # mmWave
+    for mode in sets:
+        experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
+        for experiment in os.listdir(experiments_directory):
+            input_path = os.path.join(experiments_directory, experiment)
+            distorted_experiment = f"N_{experiment}"
+            distorted_path = os.path.join(experiments_directory, distorted_experiment)
+            if os.path.exists(distorted_path):
+                shutil.rmtree(distorted_path)
+            os.mkdir(distorted_path)
+            for filename in os.listdir(input_path):
+                with open(os.path.join(input_path, filename), "r") as file:
+                    reader = csv.reader(file)
+                    rows = list(reader)
+
+                # Modify the data
+                for row in rows:
+                    for i in range(1, 4):  # Assuming columns 2, 3, 4
+                        if float(row[i]) != 0:
+                            row[i] = str(
+                                float(row[i]) + np.random.normal(loc=mean, scale=std)
+                            )
+
+                # Write the modified data to a new CSV file
+                with open(
+                    os.path.join(distorted_path, filename), "w", newline=""
+                ) as file:
+                    writer = csv.writer(file)
+                    writer.writerows(rows)
+
+    # Kinect
+    for mode in sets:
+        experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}{mode}/"
+        for experiment in os.listdir(experiments_directory):
+            new_file_name = f"N_{experiment}"
+            new_file_path = os.path.join(experiments_directory, new_file_name)
+            original_file_path = os.path.join(experiments_directory, experiment)
+            shutil.copyfile(original_file_path, new_file_path)
+
+
+preprocess_dataset()
+split_sets()
+add_noise()
 format_dataset()
