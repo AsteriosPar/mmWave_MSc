@@ -14,10 +14,11 @@ from Utils import calc_projection_points
 def calc_fade_square(track: ClusterTrack):
 
     center = calc_projection_points(
-        track.state.x[0] + track.keypoints[11],
-        track.state.x[1] + track.keypoints[12],
-        track.keypoints[13],
+        track.state.x[0] + track.keypoints[3],
+        track.state.x[1] + track.keypoints[41],
+        track.keypoints[22],
     )
+    print(center[1])
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
         min(
@@ -207,7 +208,6 @@ class Visualizer:
         return cube
 
     def draw_fading_window(self, track):
-        print("eneterd")
         (center, rect_size) = calc_fade_square(track)
         print(center, rect_size)
         vertices = [
@@ -330,11 +330,11 @@ class ScreenAdapter:
         # Clear previous items in the view
         self.scatter.clear()
         for track in trackbuffer.effective_tracks:
-            center, rect_size = calc_fade_square(track)
+            (center, rect_size) = calc_fade_square(track)
 
             self.scatter.addPoints(
-                x=[center[0] - rect_size / 2],
-                y=[center[1] - rect_size / 2],
+                x=center[0] - rect_size / 2,
+                y=center[1] - rect_size / 2,
                 size=rect_size * self.PIX_TO_M,
             )
 

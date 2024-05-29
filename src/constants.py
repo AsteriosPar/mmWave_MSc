@@ -7,11 +7,11 @@ PIXEL_TO_METERS = 0.000265
 
 ##### General Flags #####
 PROFILING = False
-SCREEN_CONNECTED = False
+SCREEN_CONNECTED = True
 
 ##### Paths and Ports #####
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
-P_MODEL_PATH = "./model/MARS.h5"
+P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
 P_LOG_PATH = f"{P_DATA_PATH}/log"
@@ -29,16 +29,16 @@ P_DATA_PORT = "/dev/ttyACM1"
 ###### Scene Setup ######
 # Sensitive Coordinates
 M_X = 0.28
-M_Y = -0.5
-M_Z = 1.55
+M_Y = -0.75
+M_Z = 1.3
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-SCREEN_SIZE = [1.6, 0.9]  # Monitor Size Approximation
-SCREEN_HEIGHT = 2
+SCREEN_SIZE = [1.6, 1.1]  # Monitor Size Approximation
+SCREEN_HEIGHT = 1.3
 
 # Sensor Attributes
-S_HEIGHT = 1.6
+S_HEIGHT = 1.8
 S_TILT = -5  # degrees (-180, 180)
 
 # Plot Parameters
@@ -107,10 +107,10 @@ KF_A_SPR = 0.9
 
 ############### Model ####################
 # Intensity Normalization
-INTENSITY_MU = 193
-INTENSITY_STD = 252
+INTENSITY_MU = 27.0187
+INTENSITY_STD = 53.351
 
-MODEL_MIN_INPUT = 10
+MODEL_MIN_INPUT = 0
 MODEL_DEFAULT_POSTURE = np.array(
     [
         0.0000,

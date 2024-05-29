@@ -36,9 +36,9 @@ class RingBuffer:
         self.size = size
         self.buffer = deque(maxlen=size)
         if init_val is None:
-            self.buffer.append(0)
+            self.append(0)
         else:
-            self.buffer.append(init_val)
+            self.append(init_val)
 
     def append(self, item):
         self.buffer.append(item)
@@ -513,42 +513,59 @@ def format_single_frame(
         sorted_indices = np.argsort(padded_data[:, 0])
         sorted_data[frame_id] = padded_data[sorted_indices]
 
-        # print(sorted_data)
-
     # Resize to matrix
     return sorted_data.reshape((3, 8, 8, 5))
 
 
-def format_single_frame_lite(track_cloud):
+def format_batched_frames(frame_clouds):
 
-    sorted_data = np.zeros(((const.FB_FRAMES_BATCH + 1) * 64, 5))
+    # We always save three batched frames to the preprocessed files
+    full_batch = np.zeros((3 * 64, 5))
 
-    for frame_id, frame_cloud in enumerate(track_cloud):
+    frame_id = 0
+    for frame_cloud in reversed(frame_clouds):
 
-        frame_cloud_final = frame_cloud[:, [0, 1, 2, -2, -1]]
-        track_cloud_len = len(frame_cloud_final)
+        effective_frame_cloud = frame_cloud[:, [0, 1, 2, -2, -1]]
+        frame_cloud_len = len(effective_frame_cloud)
 
         # Pad or cut
-        if track_cloud_len < 64:
-            num_to_pad = 64 - track_cloud_len
+        if frame_cloud_len < 64:
+            num_to_pad = 64 - frame_cloud_len
             zero_arrays = np.zeros((num_to_pad, 5))
-            padded_data = np.concatenate((frame_cloud_final, zero_arrays), axis=0)
+            padded_data = np.concatenate((effective_frame_cloud, zero_arrays), axis=0)
         else:
-            padded_data = frame_cloud_final[:64]
+            padded_data = effective_frame_cloud[:64]
 
         # Sort
-        sorted_indices = np.argsort(padded_data[:, 0])
-        sorted_data[frame_id * 64 : (frame_id + 1) * 64] = padded_data[sorted_indices]
+        # sorted_indices = np.argsort(padded_data[:, 0])
+        full_batch[frame_id * 64 : (frame_id + 1) * 64] = padded_data
+        frame_id += 1
 
     # Resize to matrix
-    return sorted_data
+    return full_batch
 
 
-def format_single_frame_pre(track_cloud: np.array, mean, std_dev):
+def format_single_frame_mode(
+    track_cloud: np.array, mean, std_dev, batch_size, fuse=False
+):
 
     track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
 
-    track_cloud.reshape((3, 64, 5))
+    limited_batch = track_cloud[: 64 * batch_size]
 
-    # Resize to matrix
-    return track_cloud.reshape((3, 8, 8, 5))
+    if fuse:
+        non_zero_arrays = limited_batch[~np.all(limited_batch == 0, axis=1)]
+
+        if len(non_zero_arrays) < 64:
+            num_to_pad = 64 - len(non_zero_arrays)
+            zero_arrays = np.zeros((num_to_pad, 5))
+            pl = np.concatenate((non_zero_arrays, zero_arrays), axis=0)
+        else:
+            pl = non_zero_arrays[:64]
+
+        sorted_indices = np.argsort(pl[:, 0])
+        final_frame = pl[sorted_indices]
+
+        return final_frame.reshape((8, 8, 5))
+    else:
+        return limited_batch.reshape((batch_size, 8, 8, 5))
