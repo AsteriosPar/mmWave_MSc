@@ -47,15 +47,19 @@ def main():
                     trackbuffer.t = now
                     # Apply scene constraints, translation
                     effective_data = normalize_data(detObj)
+                    ef_shape = effective_data.shape[0]
 
-                    if effective_data.shape[0] != 0:
+                    if ef_shape != 0:
                         # Tracking Module
                         trackbuffer.track(effective_data, batch)
 
+                    visual.update(trackbuffer, detObj)
+
+                    if ef_shape != 0:
                         # Posture Estimation module
                         trackbuffer.estimate_posture(model)
 
-                    visual.update(trackbuffer, detObj)
+                    # visual.update(trackbuffer, detObj)
 
                     t_code = time.time() - t0
                     t_sleep = max(0, SLEEPTIME - t_code)

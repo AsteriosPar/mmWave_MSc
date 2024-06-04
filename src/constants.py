@@ -28,8 +28,8 @@ P_DATA_PORT = "/dev/ttyACM1"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
-M_X = 0.28
-M_Y = -0.75
+M_X = 0.32
+M_Y = -0.7
 M_Z = 1.3
 
 # Window Attributes
@@ -84,9 +84,9 @@ DB_MIN_SAMPLES_MAX = 25
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_MAX_TRACKS = 2
+TR_MAX_TRACKS = 3
 TR_LIFETIME_DYNAMIC = 3  # sec
-TR_LIFETIME_STATIC = 5
+TR_LIFETIME_STATIC = 7
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
 
@@ -109,8 +109,10 @@ KF_A_SPR = 0.9
 # Intensity Normalization
 INTENSITY_MU = 27.0187
 INTENSITY_STD = 53.351
+INTENSITY_STD = 70
 
-MODEL_MIN_INPUT = 0
+
+MODEL_MIN_INPUT = 5
 MODEL_DEFAULT_POSTURE = np.array(
     [
         0.0000,
