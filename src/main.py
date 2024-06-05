@@ -59,8 +59,6 @@ def main():
                         # Posture Estimation module
                         trackbuffer.estimate_posture(model)
 
-                    # visual.update(trackbuffer, detObj)
-
                     t_code = time.time() - t0
                     t_sleep = max(0, SLEEPTIME - t_code)
 

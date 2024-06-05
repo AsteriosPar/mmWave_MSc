@@ -513,8 +513,11 @@ def format_single_frame(
         sorted_indices = np.argsort(padded_data[:, 0])
         sorted_data[frame_id] = padded_data[sorted_indices]
 
-    # Resize to matrix
-    return sorted_data.reshape((3, 8, 8, 5))
+    # Resize to matrix (Added a condition two check different models)
+    if const.FB_FRAMES_BATCH == 0:
+        return sorted_data.reshape((64, 5)).reshape((8, 8, 5))
+    else:
+        return sorted_data.reshape((const.FB_FRAMES_BATCH + 1, 8, 8, 5))
 
 
 def format_batched_frames(frame_clouds):

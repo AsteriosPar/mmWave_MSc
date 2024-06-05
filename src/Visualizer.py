@@ -37,7 +37,7 @@ class VisualManager:
         if self.mode:
             self.visual = ScreenAdapter()
         else:
-            self.visual = Visualizer(raw_cloud=True, b_boxes=True, posture=True)
+            self.visual = Visualizer(raw_cloud=False, b_boxes=True, posture=True)
 
     def update(self, trackbuffer, detObj):
         if const.SCREEN_CONNECTED:
@@ -274,6 +274,13 @@ class Visualizer:
         self.ax_post.set_title("Posture Estimation")
         for track in tracks:
             reshaped_data = track.keypoints.reshape(3, -1)
+
+            # Minor check for irrelevant results
+            if np.linalg.norm(reshaped_data[:, 1] - reshaped_data[:, 2]) > 0.5:
+                continue
+
+            # Mirror skeleton
+            reshaped_data[0] *= -1
             reshaped_data[0] += track.state.x[0]
             reshaped_data[2] += track.state.x[1]
             # revert_static_skeleton(reshaped_data, track.cluster.centroid)

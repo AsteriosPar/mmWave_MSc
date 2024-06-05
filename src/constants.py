@@ -7,11 +7,12 @@ PIXEL_TO_METERS = 0.000265
 
 ##### General Flags #####
 PROFILING = False
-SCREEN_CONNECTED = True
+SCREEN_CONNECTED = False
 
 ##### Paths and Ports #####
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
-P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
+P_MODEL_PATH = "../trained_cases/Rand_Base_Abs/model/MARS.h5"
+# P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
 P_LOG_PATH = f"{P_DATA_PATH}/log"
@@ -61,8 +62,8 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 2
-FB_FRAMES_BATCH_STATIC = 2
+FB_FRAMES_BATCH = 0
+FB_FRAMES_BATCH_STATIC = 0
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -87,7 +88,7 @@ DB_MIN_SAMPLES_MAX = 25
 TR_MAX_TRACKS = 3
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 7
-TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
+TR_VEL_THRES = 0.12  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
 
 # Kalman
@@ -101,7 +102,7 @@ KF_GROUP_DISP_EST_INIT = 0.1
 # Kalman estimation parameters
 KF_ENABLE_EST = False
 KF_A_N = 0.9
-KF_EST_POINTNUM = 30
+KF_EST_POINTNUM = 10
 KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]
 KF_A_SPR = 0.9
 
@@ -112,7 +113,7 @@ INTENSITY_STD = 53.351
 INTENSITY_STD = 70
 
 
-MODEL_MIN_INPUT = 5
+MODEL_MIN_INPUT = 0
 MODEL_DEFAULT_POSTURE = np.array(
     [
         0.0000,
