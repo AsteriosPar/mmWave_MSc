@@ -30,7 +30,7 @@ P_DATA_PORT = "/dev/ttyACM1"
 ###### Scene Setup ######
 # Sensitive Coordinates
 M_X = 0.32
-M_Y = -0.7
+M_Y = -0.6
 M_Z = 1.3
 
 # Window Attributes

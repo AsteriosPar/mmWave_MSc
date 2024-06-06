@@ -18,7 +18,6 @@ def calc_fade_square(track: ClusterTrack):
         track.state.x[1] + track.keypoints[41],
         track.keypoints[22],
     )
-    print(center[1])
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
         min(
@@ -209,7 +208,6 @@ class Visualizer:
 
     def draw_fading_window(self, track):
         (center, rect_size) = calc_fade_square(track)
-        # print(center, rect_size)
         vertices = [
             (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
             (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
