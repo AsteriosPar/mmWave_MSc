@@ -10,7 +10,7 @@ PROFILING = False
 SCREEN_CONNECTED = True
 
 ##### Paths and Ports #####
-P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
+P_CONFIG_PATH = "./config_cases/our_config_8.5m.cfg"
 P_MODEL_PATH = "../trained_cases/Rand_Base_Abs/model/MARS.h5"
 # P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
 P_DATA_PATH = "./dataset"
@@ -35,7 +35,7 @@ M_Z = 1.3
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-SCREEN_SIZE = [1.6, 1.1]  # Monitor Size Approximation
+SCREEN_SIZE = [1.6, 1.1]  # Smart Window Size
 SCREEN_HEIGHT = 1.3
 
 # Sensor Attributes
@@ -47,9 +47,9 @@ V_SCALLING = 1  # Scaling parameter (only for emulating)
 
 V_3D_AXIS = [[-2.5, 2.5], [0, 5], [0, 3]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
-V_SCREEN_FADE_SIZE_MIN: float = 0.14
+V_SCREEN_FADE_SIZE_MIN: float = 0.2
 V_SCREEN_FADE_WEIGHT: float = (
-    0.08  # square size reduction (m) per 1 meter of distance from sensor
+    0.08  # square size reduction m) per 1 meter of distance from sensor
 )
 V_BBOX_HEIGHT = 1.8
 V_BBOX_EYESIGHT_HEIGHT = 1.75
@@ -62,8 +62,8 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 0
-FB_FRAMES_BATCH_STATIC = 0
+FB_FRAMES_BATCH = 2
+FB_FRAMES_BATCH_STATIC = 2
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -73,7 +73,7 @@ FB_WIDTH_FRAME_PERIOD = 20
 DB_Z_WEIGHT = 0.4
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
-DB_MIN_SAMPLES_MIN = 40
+DB_MIN_SAMPLES_MIN = 35
 
 # Inner DBScan
 DB_POINTS_THRES = 40
@@ -85,7 +85,7 @@ DB_MIN_SAMPLES_MAX = 25
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_MAX_TRACKS = 3
+TR_MAX_TRACKS = 4
 TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 7
 TR_VEL_THRES = 0.12  # Velocity threshold for STATIC or DYNAMIC track

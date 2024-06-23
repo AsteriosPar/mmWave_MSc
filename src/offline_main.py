@@ -13,7 +13,7 @@ from Tracking import (
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./gif/merged"
+EXPERIMENT_PATH = "./dataset/log/mmWave/A21"
 
 #####################################################
 

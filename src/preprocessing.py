@@ -5,6 +5,7 @@ import os
 import csv
 import random
 import constants as const
+from tqdm import tqdm
 from Utils import (
     normalize_data,
     OfflineManager,
@@ -45,7 +46,6 @@ def pair(experiment):
 
                 if abs(timestamp1 - timestamp2) < 20:
                     pairs.append((int(row1[0]), closest_row.iloc[0, 1]))
-    # print(len(pairs))
     return pairs
 
 
@@ -78,8 +78,9 @@ def filter_kinect_frames(pairs, invalid_frames, experiment):
                 translated_row = translate_kinect(row)
 
                 if RELATIVE_ENABLED:
-                    # current_centroid = centroids[valid_counter]
-                    # translated_row = relative_kinect(translated_row, current_centroid)
+                    #     # current_centroid = centroids[valid_counter]
+                    #     # translated_row = relative_kinect(translated_row, current_centroid)
+
                     translated_row = static_kinect(translated_row)
 
                 writer.writerow(translated_row)
@@ -147,8 +148,8 @@ def static_kinect(row):
 def preprocess_dataset():
 
     experiments_directory = f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}"
-    for experiment in os.listdir(experiments_directory):
-        print("new exp")
+    print("Preprocessing:")
+    for experiment in tqdm(os.listdir(experiments_directory)):
 
         frame_pairs = pair(experiment)
 
@@ -269,7 +270,7 @@ def preprocess_dataset():
         df = pd.DataFrame(data_buffer)
         df.to_csv(cur_file, mode="a", index=False, header=False)
 
-        np.save(f"{experiment}_centroid.npy", np.array(centroids))
+        np.save(f"./centroids_final/{experiment}_centroid.npy", np.array(centroids))
 
         filter_kinect_frames(frame_pairs, invalid_frames, experiment)
 
@@ -299,8 +300,8 @@ def format_mmwave_to_npy(
 ):
 
     # Exactly how many frames we process
-    BATCH_SIZE = 3
-    FUSE = False
+    BATCH_SIZE = 1
+    FUSE = True
 
     experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
     output_path = f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}{index}/"
@@ -310,7 +311,7 @@ def format_mmwave_to_npy(
     experiments_sorted = sorted(experiments, key=extract_parts)
 
     for experiment in experiments_sorted:
-        print(f"doing {experiment}")
+        # print(f"doing {experiment}")
         experiment_path = os.path.join(experiments_directory, experiment)
         filenames = os.listdir(experiment_path)
         filenames_sorted = sorted(filenames, key=lambda x: int(os.path.splitext(x)[0]))
@@ -385,9 +386,6 @@ def format_kinect_to_npy(mode, index):
 
 def format_dataset(index):
     sets = ["training", "validate", "testing"]
-    # sets = ["testing"]
-
-    # mean, std_dev = find_intensity_normalizers(sets)
 
     with keep.presenting():
         os.mkdir(f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}{index}/")
@@ -403,66 +401,6 @@ def extract_parts(filename):
     numeric_part = "".join(filter(str.isdigit, base))
     alpha_part = "".join(filter(str.isalpha, base))
     return int(numeric_part), alpha_part, ext
-
-
-def random_split_sets():
-    TR = 0.7
-    VAL = 0.15
-
-    validate_prefix = []
-    testing_prefix = []
-
-    experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}"
-    for experiment in os.listdir(experiments_directory):
-        random_float = random.random()
-        if random_float > TR:
-            if random_float < TR + VAL:
-                validate_prefix.append(experiment)
-            else:
-                testing_prefix.append(experiment)
-
-    return validate_prefix, testing_prefix
-
-
-def produce_random_numbers():
-    exps = [
-        "A2",
-        "A3",
-        "A4",
-        "A5",
-        "A6",
-        "B1",
-        "B2",
-        "B3",
-        "B4",
-        "B5",
-        "B6",
-        "B7",
-        "B8",
-        "B9",
-        "A7",
-    ]
-
-    iterations = []
-
-    for i in range(10):
-        val_inds = []
-        test_inds = []
-        while len(val_inds) < 3:
-            ran = np.random.randint(1, 16)
-            if not ran in val_inds:
-                val_inds.append(ran)
-
-        while len(test_inds) < 3:
-            ran = np.random.randint(1, 16)
-            if not ran in val_inds and not ran in test_inds:
-                test_inds.append(ran)
-
-        val = [exps[i - 1] for i in val_inds]
-        test = [exps[i - 1] for i in test_inds]
-        iterations.append([val, test])
-
-    return iterations
 
 
 def split_sets(prefixes):
@@ -588,9 +526,10 @@ sets = [
     [["A4", "B6", "A7"], ["B2", "B5", "B1"]],
 ]
 
-# preprocess_dataset()
+preprocess_dataset()
 
-# for i in range(10):
-# split_sets(sets[0])
-# add_noise()
-# format_dataset(0)
+print("Formatting:")
+for i in tqdm(range(10)):
+    split_sets(sets[i])
+    # add_noise()
+    format_dataset(i)

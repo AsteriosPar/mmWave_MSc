@@ -14,32 +14,12 @@ from keras.layers import Dropout
 
 """
 Taken from MARS repository https://github.com/SizheAn/MARS. It includes the training loop and 
-the model architecture of MARS.
+the model architecture of MARS. 
 """
 
 
 path = os.getcwd()
 os.chdir(path)
-
-# np_load_old = np.load
-
-# # modify the default parameters of np.load
-# np.load = lambda *a, **k: np_load_old(*a, allow_pickle=True, **k)
-
-# load the feature and labels, 24066, 8033, and 7984 frames for train, validate, and test
-# featuremap_train = np.load("./dataset/formatted/mmWave/training_mmWave.npy")
-# featuremap_validate = np.load("./dataset/formatted/mmWave/validate_mmWave.npy")
-# featuremap_test = np.load("./dataset/formatted/mmWave/testing_mmWave.npy")
-
-# # print(featuremap_train.shape, featuremap_validate.shape, featuremap_test.shape)
-
-# labels_train = np.load("./dataset/formatted/kinect/training_labels.npy")
-# labels_validate = np.load("./dataset/formatted/kinect/validate_labels.npy")
-# labels_test = np.load("./dataset/formatted/kinect/testing_labels.npy")
-
-
-# restore np.load for future normal usage
-# np.load = np_load_old
 
 # Initialize the result array
 paper_result_list = []
@@ -48,45 +28,6 @@ paper_result_list = []
 # define batch size and epochs
 batch_size = 128
 epochs = 150
-
-
-# define the model
-def define_CNN_3D(in_shape, n_keypoints):
-
-    in_one = Input(shape=in_shape)
-    conv_one_1 = Conv3D(
-        16, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
-    )(in_one)
-    conv_one_1 = Dropout(0.3)(conv_one_1)
-    conv_one_2 = Conv3D(
-        32, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
-    )(conv_one_1)
-    conv_one_2 = Dropout(0.3)(conv_one_2)
-
-    conv_one_2 = BatchNormalization(momentum=0.95)(conv_one_2)
-
-    fe = Flatten()(conv_one_2)
-    # dense1
-    dense_layer1 = Dense(3 * 512, activation="relu")(fe)
-    dense_layer1 = BatchNormalization(momentum=0.95)(dense_layer1)
-    # # dropout
-
-    # dropout
-    dense_layer1 = Dropout(0.4)(dense_layer1)
-
-    out_layer = Dense(n_keypoints, activation="linear")(dense_layer1)
-
-    # model
-    model = Model(in_one, out_layer)
-    opt = Adam(learning_rate=0.001, beta_1=0.5)
-
-    # compile the model
-    model.compile(
-        loss="mse",
-        optimizer=opt,
-        metrics=["mae", "mse", "mape", tf.keras.metrics.RootMeanSquaredError()],
-    )
-    return model
 
 
 def define_CNN(in_shape, n_keypoints):
@@ -127,6 +68,44 @@ def define_CNN(in_shape, n_keypoints):
     return model
 
 
+def define_CNN_3D(in_shape, n_keypoints):
+
+    in_one = Input(shape=in_shape)
+    conv_one_1 = Conv3D(
+        16, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
+    )(in_one)
+    conv_one_1 = Dropout(0.3)(conv_one_1)
+    conv_one_2 = Conv3D(
+        32, kernel_size=(3, 3, 3), activation="relu", strides=(1, 1, 1), padding="same"
+    )(conv_one_1)
+    conv_one_2 = Dropout(0.3)(conv_one_2)
+
+    conv_one_2 = BatchNormalization(momentum=0.95)(conv_one_2)
+
+    fe = Flatten()(conv_one_2)
+    # dense1
+    dense_layer1 = Dense(3 * 512, activation="relu")(fe)
+    dense_layer1 = BatchNormalization(momentum=0.95)(dense_layer1)
+    # # dropout
+
+    # dropout
+    dense_layer1 = Dropout(0.4)(dense_layer1)
+
+    out_layer = Dense(n_keypoints, activation="linear")(dense_layer1)
+
+    # model
+    model = Model(in_one, out_layer)
+    opt = Adam(learning_rate=0.001, beta_1=0.5)
+
+    # compile the model
+    model.compile(
+        loss="mse",
+        optimizer=opt,
+        metrics=["mae", "mse", "mape", tf.keras.metrics.RootMeanSquaredError()],
+    )
+    return model
+
+
 # Repeat i iteration to get the average result
 for i in range(10):
     featuremap_train = np.load(
@@ -139,8 +118,6 @@ for i in range(10):
         f"./drive/MyDrive/formatted/mmWave/{i}/testing_mmWave.npy"
     )
 
-    # print(featuremap_train.shape, featuremap_validate.shape, featuremap_test.shape)
-
     labels_train = np.load(f"./drive/MyDrive/formatted/kinect/{i}/training_labels.npy")
     labels_validate = np.load(
         f"./drive/MyDrive/formatted/kinect/{i}/validate_labels.npy"
@@ -148,7 +125,7 @@ for i in range(10):
     labels_test = np.load(f"./drive/MyDrive/formatted/kinect/{i}/testing_labels.npy")
 
     # instantiate the model
-    keypoint_model = define_CNN(featuremap_train[0].shape, 57)
+    keypoint_model = define_CNN_3D(featuremap_train[0].shape, 57)
     # initial maximum error
     score_min = 10
     history = keypoint_model.fit(
