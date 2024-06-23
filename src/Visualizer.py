@@ -14,9 +14,9 @@ from Utils import calc_projection_points
 def calc_fade_square(track: ClusterTrack):
 
     center = calc_projection_points(
-        track.state.x[0] + track.keypoints[11],
-        track.state.x[1] + track.keypoints[12],
-        track.keypoints[13],
+        track.state.x[0] + track.keypoints[3],
+        track.state.x[1] + track.keypoints[41],
+        track.keypoints[22],
     )
     rect_size = max(
         const.V_SCREEN_FADE_SIZE_MIN,
@@ -36,7 +36,7 @@ class VisualManager:
         if self.mode:
             self.visual = ScreenAdapter()
         else:
-            self.visual = Visualizer(raw_cloud=True, b_boxes=True, posture=True)
+            self.visual = Visualizer(raw_cloud=False, b_boxes=True, posture=True)
 
     def update(self, trackbuffer, detObj):
         if const.SCREEN_CONNECTED:
@@ -46,8 +46,8 @@ class VisualManager:
             self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
             self.visual.update_bb(trackbuffer)
             self.visual.update_posture(trackbuffer.effective_tracks)
-            plt.savefig(f"./gif/{self.counter}.png")
-            self.counter += 1
+            # plt.savefig(f"./gif/{self.counter}.png")
+            # self.counter += 1
             self.visual.draw()
 
 
@@ -207,9 +207,7 @@ class Visualizer:
         return cube
 
     def draw_fading_window(self, track):
-        print("eneterd")
         (center, rect_size) = calc_fade_square(track)
-        print(center, rect_size)
         vertices = [
             (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
             (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
@@ -274,6 +272,13 @@ class Visualizer:
         self.ax_post.set_title("Posture Estimation")
         for track in tracks:
             reshaped_data = track.keypoints.reshape(3, -1)
+
+            # Minor check for irrelevant results
+            if np.linalg.norm(reshaped_data[:, 1] - reshaped_data[:, 2]) > 0.5:
+                continue
+
+            # Mirror skeleton
+            reshaped_data[0] *= -1
             reshaped_data[0] += track.state.x[0]
             reshaped_data[2] += track.state.x[1]
             # revert_static_skeleton(reshaped_data, track.cluster.centroid)
@@ -330,11 +335,11 @@ class ScreenAdapter:
         # Clear previous items in the view
         self.scatter.clear()
         for track in trackbuffer.effective_tracks:
-            center, rect_size = calc_fade_square(track)
+            (center, rect_size) = calc_fade_square(track)
 
             self.scatter.addPoints(
-                x=[center[0] - rect_size / 2],
-                y=[center[1] - rect_size / 2],
+                x=center[0] - rect_size / 2,
+                y=center[1] - rect_size / 2,
                 size=rect_size * self.PIX_TO_M,
             )
 

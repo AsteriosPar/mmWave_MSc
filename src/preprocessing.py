@@ -3,12 +3,15 @@ import pandas as pd
 import shutil
 import os
 import csv
+import random
 import constants as const
+from tqdm import tqdm
 from Utils import (
     normalize_data,
     OfflineManager,
-    format_single_frame,
+    format_single_frame_mode,
     relative_coordinates,
+    format_batched_frames,
 )
 from Tracking import (
     TrackBuffer,
@@ -43,11 +46,10 @@ def pair(experiment):
 
                 if abs(timestamp1 - timestamp2) < 20:
                     pairs.append((int(row1[0]), closest_row.iloc[0, 1]))
-    # print(len(pairs))
     return pairs
 
 
-def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
+def filter_kinect_frames(pairs, invalid_frames, experiment):
     input_file = os.path.join(
         f"{const.P_LOG_PATH}{const.P_KINECT_DIR}", f"{experiment}.csv"
     )
@@ -76,8 +78,9 @@ def filter_kinect_frames(pairs, invalid_frames, experiment, centroids):
                 translated_row = translate_kinect(row)
 
                 if RELATIVE_ENABLED:
-                    # current_centroid = centroids[valid_counter]
-                    # translated_row = relative_kinect(translated_row, current_centroid)
+                    #     # current_centroid = centroids[valid_counter]
+                    #     # translated_row = relative_kinect(translated_row, current_centroid)
+
                     translated_row = static_kinect(translated_row)
 
                 writer.writerow(translated_row)
@@ -145,8 +148,8 @@ def static_kinect(row):
 def preprocess_dataset():
 
     experiments_directory = f"{const.P_LOG_PATH}{const.P_MMWAVE_DIR}"
-    for experiment in os.listdir(experiments_directory):
-        print("new exp")
+    print("Preprocessing:")
+    for experiment in tqdm(os.listdir(experiments_directory)):
 
         frame_pairs = pair(experiment)
 
@@ -159,6 +162,7 @@ def preprocess_dataset():
         frames_in_cur_file = 0
         cur_file_index = 1
         cur_file = os.path.join(output_dir, f"{cur_file_index}.csv")
+        centroids = []
 
         trackbuffer = TrackBuffer()
         batch = BatchedData()
@@ -166,7 +170,6 @@ def preprocess_dataset():
 
         first_iter = True
         invalid_frames = []
-        centroids = []
         while not sensor_data.is_finished():
 
             valid_frame = False
@@ -197,27 +200,33 @@ def preprocess_dataset():
                             ):
                                 valid_frame = True
 
+                                frames_to_process = list(
+                                    trackbuffer.effective_tracks[0].batch.buffer
+                                )
                                 if RELATIVE_ENABLED:
-                                    track_points = relative_coordinates(
-                                        track_points,
+                                    frames_to_process = relative_coordinates(
+                                        frames_to_process,
                                         trackbuffer.effective_tracks[
                                             0
                                         ].cluster.centroid,
                                     )
+
                                     centroids.append(
                                         trackbuffer.effective_tracks[
                                             0
-                                        ].cluster.centroid[:2],
+                                        ].cluster.centroid[:2]
                                     )
+
+                                final_frames = format_batched_frames(frames_to_process)
 
                                 # Save effective data in a .csv
                                 data = {
                                     "Frame": framenum,
-                                    "X": track_points[:, 0],
-                                    "Y": track_points[:, 1],
-                                    "Z": track_points[:, 2],
-                                    "Doppler": track_points[:, 6],
-                                    "Intensity": track_points[:, 7],
+                                    "X": final_frames[:, 0],
+                                    "Y": final_frames[:, 1],
+                                    "Z": final_frames[:, 2],
+                                    "Doppler": final_frames[:, 3],
+                                    "Intensity": final_frames[:, 4],
                                 }
 
                                 # Store data in the data path
@@ -261,7 +270,9 @@ def preprocess_dataset():
         df = pd.DataFrame(data_buffer)
         df.to_csv(cur_file, mode="a", index=False, header=False)
 
-        filter_kinect_frames(frame_pairs, invalid_frames, experiment, centroids)
+        np.save(f"./centroids_final/{experiment}_centroid.npy", np.array(centroids))
+
+        filter_kinect_frames(frame_pairs, invalid_frames, experiment)
 
 
 def find_intensity_normalizers(sets):
@@ -269,12 +280,13 @@ def find_intensity_normalizers(sets):
     for mode in sets:
         experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
         for experiment in os.listdir(experiments_directory):
-            input_path = os.path.join(experiments_directory, experiment)
-            for filename in os.listdir(input_path):
-                with open(os.path.join(input_path, filename), "r") as file:
-                    csv_reader = csv.reader(file)
-                    for row in csv_reader:
-                        intensities.append(float(row[5]))
+            if experiment.find("N_") == -1:
+                input_path = os.path.join(experiments_directory, experiment)
+                for filename in os.listdir(input_path):
+                    with open(os.path.join(input_path, filename), "r") as file:
+                        csv_reader = csv.reader(file)
+                        for row in csv_reader:
+                            intensities.append(float(row[5]))
 
     mean = np.mean(intensities)
     std_dev = np.std(intensities)
@@ -283,43 +295,64 @@ def find_intensity_normalizers(sets):
     return mean, std_dev
 
 
-def format_mmwave_to_npy(mean, std_dev, mode):
+def format_mmwave_to_npy(
+    mode, index, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
+):
+
+    # Exactly how many frames we process
+    BATCH_SIZE = 1
+    FUSE = True
+
     experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}{mode}/"
-    output_path = f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}"
+    output_path = f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}{index}/"
     main_list = []
 
     experiments = os.listdir(experiments_directory)
     experiments_sorted = sorted(experiments, key=extract_parts)
 
     for experiment in experiments_sorted:
+        # print(f"doing {experiment}")
         experiment_path = os.path.join(experiments_directory, experiment)
         filenames = os.listdir(experiment_path)
         filenames_sorted = sorted(filenames, key=lambda x: int(os.path.splitext(x)[0]))
         for filename in filenames_sorted:
-            print(f"doing {experiment}, {filename}...")
             with open(os.path.join(experiment_path, filename), "r") as file:
-                df = pd.read_csv(file, header=None)
+                reader = csv.reader(file)
+                rows = list(reader)
+
                 current_frame = None
                 frame_array = []
-                for _, row in df.iterrows():
+                for row in rows:
                     if current_frame is None:
-                        current_frame = row[0]
-                        frame_array.append(row[1:6])
+                        current_frame = int(row[0])
+                        frame_array.append([float(i) for i in row[1:6]])
 
-                    elif current_frame == row[0]:
-                        frame_array.append(row[1:6])
+                    elif current_frame == int(row[0]):
+                        frame_array.append([float(i) for i in row[1:6]])
 
                     else:
                         main_list.append(
-                            format_single_frame(np.array(frame_array), mean, std_dev)
+                            format_single_frame_mode(
+                                np.array(frame_array, dtype=np.float32),
+                                mean,
+                                std_dev,
+                                BATCH_SIZE,
+                                FUSE,
+                            )
                         )
 
                         frame_array = []
-                        current_frame = row[0]
-                        frame_array.append(row[1:6])
+                        current_frame = int(row[0])
+                        frame_array.append([float(i) for i in row[1:6]])
 
                 main_list.append(
-                    format_single_frame(np.array(frame_array), mean, std_dev)
+                    format_single_frame_mode(
+                        np.array(frame_array, dtype=np.float32),
+                        mean,
+                        std_dev,
+                        BATCH_SIZE,
+                        FUSE,
+                    )
                 )
     print(np.array(main_list).shape)
     # Save to output .npy file
@@ -329,11 +362,11 @@ def format_mmwave_to_npy(mean, std_dev, mode):
     )
 
 
-def format_kinect_to_npy(mode):
+def format_kinect_to_npy(mode, index):
     experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}{mode}/"
     experiments = os.listdir(experiments_directory)
     experiments_sorted = sorted(experiments, key=extract_parts)
-    output_path = f"{const.P_FORMATTED_PATH}{const.P_KINECT_DIR}"
+    output_path = f"{const.P_FORMATTED_PATH}{const.P_KINECT_DIR}{index}/"
 
     main_list = []
     for experiment in experiments_sorted:
@@ -351,16 +384,16 @@ def format_kinect_to_npy(mode):
     )
 
 
-def format_dataset():
+def format_dataset(index):
     sets = ["training", "validate", "testing"]
-    mean, std_dev = find_intensity_normalizers(sets)
 
     with keep.presenting():
-
+        os.mkdir(f"{const.P_FORMATTED_PATH}{const.P_MMWAVE_DIR}{index}/")
+        os.mkdir(f"{const.P_FORMATTED_PATH}{const.P_KINECT_DIR}{index}/")
         for set_mode in sets:
             # Preprocess .csvs into numpy arrays and save them in one file
-            format_mmwave_to_npy(mean, std_dev, set_mode)
-            format_kinect_to_npy(set_mode)
+            format_mmwave_to_npy(set_mode, index)
+            format_kinect_to_npy(set_mode, index)
 
 
 def extract_parts(filename):
@@ -370,9 +403,7 @@ def extract_parts(filename):
     return int(numeric_part), alpha_part, ext
 
 
-def split_sets():
-    validate_prefix = ["A5"]
-    testing_prefix = ["A4"]
+def split_sets(prefixes):
 
     kinect_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}/"
     mmwave_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}/"
@@ -380,11 +411,17 @@ def split_sets():
     directories = [kinect_directory, mmwave_directory]
 
     for directory in directories:
-        experiments = os.listdir(directory)
-
         shutil.rmtree(f"{directory}/training")
         shutil.rmtree(f"{directory}/validate")
         shutil.rmtree(f"{directory}/testing")
+
+    # validate_prefix, testing_prefix = random_split_sets()
+    validate_prefix = prefixes[0]
+    testing_prefix = prefixes[1]
+
+    for directory in directories:
+        experiments = os.listdir(directory)
+
         os.makedirs(f"{directory}/training")
         os.makedirs(f"{directory}/validate")
         os.makedirs(f"{directory}/testing")
@@ -395,24 +432,104 @@ def split_sets():
                 and experiment.find("validate") == -1
                 and experiment.find("testing") == -1
             ):
-                if any(experiment.find(prefix) != -1 for prefix in validate_prefix):
-                    shutil.move(
-                        f"{directory}/{experiment}",
-                        f"{directory}/validate/{experiment}",
-                    )
+                source = f"{directory}/{experiment}"
+                if os.path.isdir(source):
+                    if any(experiment.find(prefix) != -1 for prefix in validate_prefix):
+                        shutil.copytree(
+                            source,
+                            f"{directory}/validate/{experiment}",
+                        )
 
-                elif any(experiment.find(prefix) != -1 for prefix in testing_prefix):
-                    shutil.move(
-                        f"{directory}/{experiment}",
-                        f"{directory}/testing/{experiment}",
-                    )
+                    elif any(
+                        experiment.find(prefix) != -1 for prefix in testing_prefix
+                    ):
+                        shutil.copytree(
+                            source,
+                            f"{directory}/testing/{experiment}",
+                        )
+                    else:
+                        shutil.copytree(
+                            source,
+                            f"{directory}/training/{experiment}",
+                        )
                 else:
-                    shutil.move(
-                        f"{directory}/{experiment}",
-                        f"{directory}/training/{experiment}",
-                    )
+                    if any(experiment.find(prefix) != -1 for prefix in validate_prefix):
+                        shutil.copy(
+                            source,
+                            f"{directory}/validate/{experiment}",
+                        )
+
+                    elif any(
+                        experiment.find(prefix) != -1 for prefix in testing_prefix
+                    ):
+                        shutil.copy(
+                            source,
+                            f"{directory}/testing/{experiment}",
+                        )
+                    else:
+                        shutil.copy(
+                            source,
+                            f"{directory}/training/{experiment}",
+                        )
 
 
-# preprocess_dataset()
-# split_sets()
-# format_dataset()
+def add_noise():
+    mean = 0.0
+    std = 0.022
+
+    # mmWave
+    experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_MMWAVE_DIR}training/"
+    for experiment in os.listdir(experiments_directory):
+        input_path = os.path.join(experiments_directory, experiment)
+        distorted_experiment = f"N_{experiment}"
+        distorted_path = os.path.join(experiments_directory, distorted_experiment)
+        if os.path.exists(distorted_path):
+            shutil.rmtree(distorted_path)
+        os.mkdir(distorted_path)
+        for filename in os.listdir(input_path):
+            with open(os.path.join(input_path, filename), "r") as file:
+                reader = csv.reader(file)
+                rows = list(reader)
+
+            # Add noise in x y z coords
+            for row in rows:
+                for i in range(1, 4):
+                    if float(row[i]) != 0:
+                        row[i] = str(
+                            float(row[i]) + np.random.normal(loc=mean, scale=std)
+                        )
+
+            # Write the modified data to a new CSV file
+            with open(os.path.join(distorted_path, filename), "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerows(rows)
+
+    # Kinect
+    experiments_directory = f"{const.P_PREPROCESS_PATH}{const.P_KINECT_DIR}training/"
+    for experiment in os.listdir(experiments_directory):
+        new_file_name = f"N_{experiment}"
+        new_file_path = os.path.join(experiments_directory, new_file_name)
+        original_file_path = os.path.join(experiments_directory, experiment)
+        shutil.copyfile(original_file_path, new_file_path)
+
+
+sets = [
+    [["A6", "A4", "B2"], ["B1", "B4", "A5"]],
+    [["B1", "B3", "A3"], ["B2", "B8", "B7"]],
+    [["B4", "A2", "B7"], ["B2", "B5", "A3"]],
+    [["A6", "A4", "B9"], ["B2", "B6", "A5"]],
+    [["B5", "B2", "A7"], ["B4", "A2", "A3"]],
+    [["B6", "B9", "B5"], ["A7", "A6", "B3"]],
+    [["A6", "B8", "A3"], ["B3", "B4", "A4"]],
+    [["B1", "A7", "B8"], ["A5", "A3", "B6"]],
+    [["B2", "B5", "B8"], ["A7", "B6", "A6"]],
+    [["A4", "B6", "A7"], ["B2", "B5", "B1"]],
+]
+
+preprocess_dataset()
+
+print("Formatting:")
+for i in tqdm(range(10)):
+    split_sets(sets[i])
+    # add_noise()
+    format_dataset(i)

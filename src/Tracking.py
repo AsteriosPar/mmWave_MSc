@@ -35,9 +35,10 @@ class BatchedData(RingBuffer):
     - pop_frame(): Remove the oldest frame from the buffer.
     """
 
-    def __init__(self):
-        super().__init__(const.FB_FRAMES_BATCH + 1, init_val=np.empty((0, 8)))
-        self.effective_data = np.empty((0, 8))
+    def __init__(self, init_data=np.empty((0, 8))):
+        super().__init__(const.FB_FRAMES_BATCH + 1, init_val=init_data)
+
+        self.effective_data = np.concatenate(list(self.buffer), axis=0)
 
     def add_frame(self, new_data: np.array):
         """
@@ -213,7 +214,7 @@ class ClusterTrack:
             np.eye(const.MOTION_MODEL.KF_DIM[1]) * const.KF_GROUP_DISP_EST_INIT
         )
         self.cluster = cluster
-        self.batch = BatchedData()
+        self.batch = BatchedData(cluster.pointcloud)
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
         self.lifetime = 0
@@ -719,13 +720,11 @@ class TrackBuffer:
         for index, track in enumerate(self.effective_tracks):
             if len(track.batch.effective_data) > const.MODEL_MIN_INPUT:
                 rel_track_points = relative_coordinates(
-                    track.batch.effective_data,
+                    list(track.batch.buffer),
                     track.cluster.centroid[:2],
                 )
                 # The inputs are in the form of [x, y, z, x', y', z', r', s]
-                frame_matrices.append(
-                    format_single_frame(rel_track_points[:, [0, 1, 2, -2, -1]])
-                )
+                frame_matrices.append(format_single_frame(rel_track_points))
                 indexes.append(index)
 
         frame_matrices_array = np.array(frame_matrices)

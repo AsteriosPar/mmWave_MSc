@@ -7,11 +7,12 @@ PIXEL_TO_METERS = 0.000265
 
 ##### General Flags #####
 PROFILING = False
-SCREEN_CONNECTED = False
+SCREEN_CONNECTED = True
 
 ##### Paths and Ports #####
-P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
-P_MODEL_PATH = "./model/MARS.h5"
+P_CONFIG_PATH = "./config_cases/our_config_8.5m.cfg"
+P_MODEL_PATH = "../trained_cases/Rand_Base_Abs/model/MARS.h5"
+# P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
 P_LOG_PATH = f"{P_DATA_PATH}/log"
@@ -28,17 +29,17 @@ P_DATA_PORT = "/dev/ttyACM1"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
-M_X = 0.28
-M_Y = -0.5
-M_Z = 1.55
+M_X = 0.32
+M_Y = -0.6
+M_Z = 1.3
 
 # Window Attributes
 # M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
-SCREEN_SIZE = [1.6, 0.9]  # Monitor Size Approximation
-SCREEN_HEIGHT = 2
+SCREEN_SIZE = [1.6, 1.1]  # Smart Window Size
+SCREEN_HEIGHT = 1.3
 
 # Sensor Attributes
-S_HEIGHT = 1.6
+S_HEIGHT = 1.8
 S_TILT = -5  # degrees (-180, 180)
 
 # Plot Parameters
@@ -46,9 +47,9 @@ V_SCALLING = 1  # Scaling parameter (only for emulating)
 
 V_3D_AXIS = [[-2.5, 2.5], [0, 5], [0, 3]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
-V_SCREEN_FADE_SIZE_MIN: float = 0.14
+V_SCREEN_FADE_SIZE_MIN: float = 0.2
 V_SCREEN_FADE_WEIGHT: float = (
-    0.08  # square size reduction (m) per 1 meter of distance from sensor
+    0.08  # square size reduction m) per 1 meter of distance from sensor
 )
 V_BBOX_HEIGHT = 1.8
 V_BBOX_EYESIGHT_HEIGHT = 1.75
@@ -61,8 +62,8 @@ FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
 # Number of frames per Batch
-FB_FRAMES_BATCH = 1
-FB_FRAMES_BATCH_STATIC = 1
+FB_FRAMES_BATCH = 2
+FB_FRAMES_BATCH_STATIC = 2
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
 
@@ -72,7 +73,7 @@ FB_WIDTH_FRAME_PERIOD = 20
 DB_Z_WEIGHT = 0.4
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
-DB_MIN_SAMPLES_MIN = 40
+DB_MIN_SAMPLES_MIN = 35
 
 # Inner DBScan
 DB_POINTS_THRES = 40
@@ -84,10 +85,10 @@ DB_MIN_SAMPLES_MAX = 25
 
 ###### Tracking and Kalman ######
 # Tracks
-TR_MAX_TRACKS = 2
+TR_MAX_TRACKS = 4
 TR_LIFETIME_DYNAMIC = 3  # sec
-TR_LIFETIME_STATIC = 5
-TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
+TR_LIFETIME_STATIC = 7
+TR_VEL_THRES = 0.12  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
 
 # Kalman
@@ -101,16 +102,18 @@ KF_GROUP_DISP_EST_INIT = 0.1
 # Kalman estimation parameters
 KF_ENABLE_EST = False
 KF_A_N = 0.9
-KF_EST_POINTNUM = 30
+KF_EST_POINTNUM = 10
 KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]
 KF_A_SPR = 0.9
 
 ############### Model ####################
 # Intensity Normalization
-INTENSITY_MU = 193
-INTENSITY_STD = 252
+INTENSITY_MU = 27.0187
+INTENSITY_STD = 53.351
+INTENSITY_STD = 70
 
-MODEL_MIN_INPUT = 10
+
+MODEL_MIN_INPUT = 0
 MODEL_DEFAULT_POSTURE = np.array(
     [
         0.0000,

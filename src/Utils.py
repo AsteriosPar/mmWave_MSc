@@ -36,9 +36,9 @@ class RingBuffer:
         self.size = size
         self.buffer = deque(maxlen=size)
         if init_val is None:
-            self.buffer.append(0)
+            self.append(0)
         else:
-            self.buffer.append(init_val)
+            self.append(init_val)
 
     def append(self, item):
         self.buffer.append(item)
@@ -434,32 +434,39 @@ def normalize_data(detObj):
     return ef_data
 
 
-def relative_coordinates(absolute_coords: np.array, reference: np.array):
+def relative_coordinates(absolute_coords, reference: np.array):
     """
     Calculate relative coordinates on the x and y axes with respect to a reference point.
 
     Parameters
     ----------
     absolute_coords : np.array
-        Array of absolute coordinates.
+        List of arrays of points in different frames.
     reference : np.array
         Reference point to calculate relative coordinates with respect to.
 
     Returns
     -------
     np.array
-        Array of relative coordinates.
+        list of arrays of relative coordinates.
     """
-    return np.array(
-        [
-            point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
-            for point in absolute_coords
-        ]
-    )
+
+    relative_coords = []
+    for frame in absolute_coords:
+        relative_coords.append(
+            np.array(
+                [
+                    point - [reference[0], reference[1], 0, 0, 0, 0, 0, 0]
+                    for point in frame
+                ]
+            )
+        )
+
+    return relative_coords
 
 
 def format_single_frame(
-    track_cloud: np.array, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
+    track_cloud, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD
 ):
     """
     Format a single frame of track cloud data.
@@ -469,8 +476,8 @@ def format_single_frame(
 
     Parameters
     ----------
-    track_cloud : np.array
-        The track cloud data to be formatted, containing columns for x, y, z, r', intensity.
+    track_cloud : list
+        The list of track cloud data of different frames to be formatted, containing columns for x, y, z, r', intensity.
     mean : float, optional
         The mean value used for intensity normalization (default is const.INTENSITY_MU).
     std_dev : float, optional
@@ -482,26 +489,86 @@ def format_single_frame(
         The formatted single frame data reshaped into an 8x8 matrix, with columns for x, y, z, r', intensity.
 
     """
-    track_cloud_len = len(track_cloud)
 
-    # Normalize Intensity
-    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
+    sorted_data = np.zeros((const.FB_FRAMES_BATCH + 1, 64, 5))
 
-    # Pad or cut
-    if track_cloud_len < 64:
-        num_to_pad = 64 - track_cloud_len
-        zero_arrays = np.zeros((num_to_pad, 5))
-        padded_data = np.concatenate((track_cloud, zero_arrays), axis=0)
+    for frame_id, frame_cloud in enumerate(track_cloud):
+
+        # print(frame_cloud.shape)
+        frame_cloud_final = frame_cloud[:, [0, 1, 2, -2, -1]]
+        track_cloud_len = len(frame_cloud_final)
+
+        # Normalize Intensity
+        frame_cloud_final[:, 4] = (frame_cloud_final[:, 4] - mean) / std_dev
+
+        # Pad or cut
+        if track_cloud_len < 64:
+            num_to_pad = 64 - track_cloud_len
+            zero_arrays = np.zeros((num_to_pad, 5))
+            padded_data = np.concatenate((frame_cloud_final, zero_arrays), axis=0)
+        else:
+            padded_data = frame_cloud_final[:64]
+
+        # Sort according to x values
+        sorted_indices = np.argsort(padded_data[:, 0])
+        sorted_data[frame_id] = padded_data[sorted_indices]
+
+    # Resize to matrix (Added a condition two check different models)
+    if const.FB_FRAMES_BATCH == 0:
+        return sorted_data.reshape((64, 5)).reshape((8, 8, 5))
     else:
-        padded_data = track_cloud[:64]
+        return sorted_data.reshape((const.FB_FRAMES_BATCH + 1, 8, 8, 5))
 
-    # Sort
-    sorted_indices = np.argsort(padded_data[:, 0])
-    sorted_data = padded_data[sorted_indices]
 
-    ##################
+def format_batched_frames(frame_clouds):
 
-    ##################
+    # We always save three batched frames to the preprocessed files
+    full_batch = np.zeros((3 * 64, 5))
+
+    frame_id = 0
+    for frame_cloud in reversed(frame_clouds):
+
+        effective_frame_cloud = frame_cloud[:, [0, 1, 2, -2, -1]]
+        frame_cloud_len = len(effective_frame_cloud)
+
+        # Pad or cut
+        if frame_cloud_len < 64:
+            num_to_pad = 64 - frame_cloud_len
+            zero_arrays = np.zeros((num_to_pad, 5))
+            padded_data = np.concatenate((effective_frame_cloud, zero_arrays), axis=0)
+        else:
+            padded_data = effective_frame_cloud[:64]
+
+        # Sort
+        # sorted_indices = np.argsort(padded_data[:, 0])
+        full_batch[frame_id * 64 : (frame_id + 1) * 64] = padded_data
+        frame_id += 1
 
     # Resize to matrix
-    return sorted_data.reshape((8, 8, 5))
+    return full_batch
+
+
+def format_single_frame_mode(
+    track_cloud: np.array, mean, std_dev, batch_size, fuse=False
+):
+
+    track_cloud[:, 4] = (track_cloud[:, 4] - mean) / std_dev
+
+    limited_batch = track_cloud[: 64 * batch_size]
+
+    if fuse:
+        non_zero_arrays = limited_batch[~np.all(limited_batch == 0, axis=1)]
+
+        if len(non_zero_arrays) < 64:
+            num_to_pad = 64 - len(non_zero_arrays)
+            zero_arrays = np.zeros((num_to_pad, 5))
+            pl = np.concatenate((non_zero_arrays, zero_arrays), axis=0)
+        else:
+            pl = non_zero_arrays[:64]
+
+        sorted_indices = np.argsort(pl[:, 0])
+        final_frame = pl[sorted_indices]
+
+        return final_frame.reshape((8, 8, 5))
+    else:
+        return limited_batch.reshape((batch_size, 8, 8, 5))
