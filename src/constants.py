@@ -11,8 +11,7 @@ SCREEN_CONNECTED = True
 
 ##### Paths and Ports #####
 P_CONFIG_PATH = "./config_cases/our_config_8.5m.cfg"
-P_MODEL_PATH = "../trained_cases/Rand_Base_Abs/model/MARS.h5"
-# P_MODEL_PATH = "../trained_cases/Rand_Ours_Abs/model/MARS.h5"
+P_MODEL_PATH = "../trained_cases/Our_system/model/MARS.h5"
 P_DATA_PATH = "./dataset"
 
 P_LOG_PATH = f"{P_DATA_PATH}/log"
@@ -28,19 +27,19 @@ P_CLI_PORT = "/dev/ttyACM0"
 P_DATA_PORT = "/dev/ttyACM1"
 
 ###### Scene Setup ######
-# Sensitive Coordinates
+# Sensitive Object Coordinates
 M_X = 0.32
 M_Y = -0.6
 M_Z = 1.3
 
-# Window Attributes
-# M_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
+# Smart Window Attributes
+# SCREEN_SIZE = [1920 * PIXEL_TO_METERS, 1200 * PIXEL_TO_METERS]  # Laptop
 SCREEN_SIZE = [1.6, 1.1]  # Smart Window Size
-SCREEN_HEIGHT = 1.3
+SCREEN_HEIGHT = 1.3  # Smart Window Installation Height
 
 # Sensor Attributes
-S_HEIGHT = 1.8
-S_TILT = -5  # degrees (-180, 180)
+S_HEIGHT = 1.8  # Sensor Installation Height
+S_TILT = -5  # Sensor Tilt: (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
@@ -55,27 +54,25 @@ V_BBOX_HEIGHT = 1.8
 V_BBOX_EYESIGHT_HEIGHT = 1.75
 
 
-###### Frames and Buffering #######
+###### Experiment Logging #######
 FB_FRAMES_SKIP = 0
 FB_EXPERIMENT_FILE_SIZE = 200
 FB_WRITE_BUFFER_SIZE = 40  # NOTE: must divide FB_EXPERIMENT_FILE_SIZE
 FB_READ_BUFFER_SIZE = 40
 
-# Number of frames per Batch
-FB_FRAMES_BATCH = 2
-FB_FRAMES_BATCH_STATIC = 2
-FB_HEIGHT_FRAME_PERIOD = 30
-FB_WIDTH_FRAME_PERIOD = 20
-
 
 ####### Clustering #######
+# Ringbuffer
+FB_FRAMES_BATCH = 2
+FB_FRAMES_BATCH_STATIC = 2
+
 # DBScan
 DB_Z_WEIGHT = 0.4
 DB_RANGE_WEIGHT = 0.03
 DB_EPS = 0.3
 DB_MIN_SAMPLES_MIN = 35
 
-# Inner DBScan
+# Inner DBScan (Currently inactive)
 DB_POINTS_THRES = 40
 DB_SPREAD_THRES = 0.7
 DB_INNER_EPS = 0.1
@@ -87,11 +84,11 @@ DB_MIN_SAMPLES_MAX = 25
 # Tracks
 TR_MAX_TRACKS = 4
 TR_LIFETIME_DYNAMIC = 3  # sec
-TR_LIFETIME_STATIC = 7
+TR_LIFETIME_STATIC = 7  # sec
 TR_VEL_THRES = 0.12  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
 
-# Kalman
+# Kalman Noise Variances
 KF_R_STD = 0.1
 KF_Q_STD = 1
 
@@ -99,7 +96,7 @@ KF_Q_STD = 1
 KF_P_INIT = 0.1
 KF_GROUP_DISP_EST_INIT = 0.1
 
-# Kalman estimation parameters
+# GTRACK pointnum & spread estimation
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 10
@@ -109,9 +106,7 @@ KF_A_SPR = 0.9
 ############### Model ####################
 # Intensity Normalization
 INTENSITY_MU = 27.0187
-INTENSITY_STD = 53.351
-INTENSITY_STD = 70
-
+INTENSITY_STD = 70.351
 
 MODEL_MIN_INPUT = 0
 MODEL_DEFAULT_POSTURE = np.array(

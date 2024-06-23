@@ -1,8 +1,13 @@
 # Real-time mmWave Multi-Person Pose Estimation System for Privacy-Aware Windows
 
-This repository implements a top-down approach to Multi-Person Pose Estimation through **Multi Target Tracking (MTT)** for monitoring the presence of humans entering a scene and **Pose Estimation** on every bounding box to estimate the location of 19 human-joint keypoints. It includes functionalities to estimate targets' line-of-sight and ensures privacy protection by activating local opacities on self-fading windows. The system is specifically designed to receive radar data from the **IWR1443** millimeter-wave sensor by Texas Instruments. 
+This repository implements a top-down approach to **Multi-Person Pose Estimation (MPPE)** through Multi Target Tracking (MTT) for monitoring the presence of humans entering a scene and **Pose Estimation** on every bounding box to estimate the location of 19 human-joint keypoints. It includes functionalities to estimate targets' line-of-sight and ensures privacy protection by activating local opacities on self-fading smart windows. The system is specifically designed to receive radar data from the **IWR1443** millimeter-wave sensor by Texas Instruments. 
 
-NOTE: This repository uses the [MARS model](https://github.com/SizheAn/MARS) architecture as the baseline CNN for the Posture Estimation module.
+<p align="center">
+  <img src="concept.png" alt="concept" style="width: 60%"/>
+</p>
+
+
+NOTE: This repository uses a simplified [GTRACK](https://dev.ti.com/tirex/explore/node?node=A__AYZwK7t1GX7lsaN.HegOQw__RADAR-ACADEMY__GwxShWe__LATEST) algorithm for tracking and modifies the [MARS model](https://github.com/SizheAn/MARS) architecture for posture estimation module.
 
 ## About
 
@@ -43,3 +48,13 @@ This is the repository for my MSc thesis:
     python3 ./src/offline_main.py
     ```
 
+
+## Setting up the scene 
+All the necessary scene configuration parameters are shown in the picture below. **NOTE:** Make sure to set the *SCREEN_CONNECTED* configuration to *TRUE* to enable the privacy shielding function. Otherwise, the system will visualize the estimated skeletons and their bounding boxes. 
+
+```python
+SCREEN_CONNECTED = True
+```
+<p align="center">
+  <img src="scene_params.png" alt="params"/>
+</p>
