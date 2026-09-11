@@ -1,4 +1,4 @@
-# Real-time mmWave Multi-Person Pose Estimation System for Privacy-Aware Windows
+# Don’t Pry Into My Personal Space: Exploiting mmWave Sensors to Provide Privacy for Areas With Glass Walls
 
 This repository implements a top-down approach to **Multi-Person Pose Estimation (MPPE)** through Multi Target Tracking (MTT) for monitoring the presence of humans entering a scene and **Pose Estimation** on every bounding box to estimate the location of 19 human-joint keypoints. It includes functionalities to estimate targets' line-of-sight and ensures privacy protection by activating local opacities on self-fading smart windows. The system is specifically designed to receive radar data from the **IWR1443** millimeter-wave sensor by Texas Instruments. 
 
@@ -11,8 +11,7 @@ NOTE: This repository uses a simplified [GTRACK](https://dev.ti.com/tirex/explor
 
 ## About
 
-This is the repository for my MSc thesis: 
-[*Real-time mmWave Multi-Person Pose Estimation System for Privacy-Aware Windows*](https://resolver.tudelft.nl/uuid:9d78ecc9-062a-4201-89f7-079ac59c385a) 
+This is the repository for the paper _"Don’t Pry Into My Personal Space: Exploiting mmWave Sensors to Provide Privacy for Areas With Glass Walls"_ (Link will be provided soon).
 
 <p align="center">
   <img src="demo.gif" alt="animated" />
@@ -24,9 +23,6 @@ This is the repository for my MSc thesis:
 
 
 1. Clone this repository.
-   ```sh
-   git clone https://github.com/AsteriosPar/mmWave_MSc
-   ```
 
 2. Install Dependencies.
    ```sh
@@ -62,14 +58,12 @@ SCREEN_CONNECTED = True
 
 ## Re-training the model
 
-1. Download our dataset in the main project directory.
-
-2. Run (or modify) the preprocessing algorithm.
+1. Run (or modify) the preprocessing algorithm.
   ```sh
     python3 ./src/preprocessing.py
   ```
 
-3. The output will be in the */formatted/* folder and have the format:
+2. The output will be in the */formatted/* folder and have the format:
   ```bash
 
   ├── dataset
@@ -85,7 +79,7 @@ SCREEN_CONNECTED = True
   
   ```
 
-4. Train the model.
+3. Train the model.
   ```sh
     python3 ./src/train.py
   ``` 
